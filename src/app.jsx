@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import Login from './Login'
 // Wrap your whole app with this auth check:
