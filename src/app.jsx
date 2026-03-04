@@ -16,7 +16,7 @@ return () => subscription.unsubscribe()
 }, [])
 if (loading) return <div>Loading...</div>
 if (!user) return <Login />
-return <GuruPay userId={user.id} /> // show app when logged in
+return <GuruPayPro userId={user.id} /> // show app when logged in
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -84,10 +84,10 @@ const SEED_PROFILE = {
 // ─── Storage ──────────────────────────────────────────────────────────────────
 const KEYS = { batches: "gp2_b", students: "gp2_s", payments: "gp2_p", profile: "gp2_pr", theme: "gp2_th" };
 async function dbGet(k, fallback) {
-  try { const r = await window.storage.get(k); return r ? JSON.parse(r.value) : fallback; }
+  try { const val = localStorage.getItem(k); return val ? JSON.parse(val) : fallback; }
   catch { return fallback; }
 }
-async function dbSet(k, v) { try { await window.storage.set(k, JSON.stringify(v)); } catch {} }
+async function dbSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
@@ -1390,7 +1390,7 @@ function BulkReminderModal({ unpaid, students, batches, selectedMonth, onClose }
 }
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
-export default function GuruPayPro() {
+function GuruPayPro() {
   const [tab, setTab] = useState("dashboard");
   const [batches, setBatches] = useState([]);
   const [students, setStudents] = useState([]);
