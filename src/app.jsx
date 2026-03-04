@@ -25,8 +25,8 @@ useEffect(() => {
   )
   return () => subscription.unsubscribe()
 }, [])
-if (error) return <div style={{ padding: '2rem', color: 'red' }}>Error: {error}</div>
-if (loading) return <div style={{ padding: '2rem' }}>Loading...</div>
+if (error) return <div style={{ padding: '2rem', color: 'red', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❌ Error: {error}</div>
+if (loading) return <div style={{ padding: '2rem', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⏳ Loading...</div>
 if (!user) return <Login />
 return <GuruPayPro userId={user.id} /> // show app when logged in
 }
