@@ -4,4 +4,19 @@ import App from "./app.jsx";
 import "./index.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// Register service worker for PWA
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then(() => console.log("Service Worker registered"))
+      .catch((err) => console.log("Service Worker failed:", err));
+  });
+}
