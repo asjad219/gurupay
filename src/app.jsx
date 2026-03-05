@@ -28,7 +28,7 @@ useEffect(() => {
 if (error) return <div style={{ padding: '2rem', color: 'red', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❌ Error: {error}</div>
 if (loading) return <div style={{ padding: '2rem', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⏳ Loading...</div>
 if (!user) return <Login />
-return <GuruPayPro userId={user.id} /> // show app when logged in
+return <GuruPayPro userId={user.id} userEmail={user.email} /> // show app when logged in
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -93,8 +93,18 @@ const SEED_PROFILE = {
   email: "balaji@coaching.in", upiId: "balaji@okaxis",
 };
 
+// Default feature settings
+const DEFAULT_FEATURES = {
+  showStudents: true,
+  showAttendance: true,
+  showPayments: true,
+  showReports: true,
+  enableNotifications: true,
+  enableDarkMode: true,
+};
+
 // ─── Storage ──────────────────────────────────────────────────────────────────
-const KEYS = { batches: "gp2_b", students: "gp2_s", payments: "gp2_p", profile: "gp2_pr", theme: "gp2_th" };
+const KEYS = { batches: "gp2_b", students: "gp2_s", payments: "gp2_p", profile: "gp2_pr", theme: "gp2_th", features: "gp2_feat" };
 async function dbGet(k, fallback) {
   try { const val = localStorage.getItem(k); return val ? JSON.parse(val) : fallback; }
   catch { return fallback; }
@@ -141,7 +151,17 @@ const CSS = `
 
   /* Sidebar */
   .sidebar { width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border);
-    display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; transition: var(--transition); z-index: 50; }
+    display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; transition: var(--transition); z-index: 50; position: relative; }
+
+  /* Sidebar mobile styles */
+  .sidebar-overlay { display: none; }
+  @media (max-width: 768px) {
+    .sidebar { position: absolute; left: 0; top: 0; bottom: 0; transform: translateX(-100%); box-shadow: var(--shadow-lg); }
+    .sidebar.mobile-open { transform: translateX(0); }
+    .sidebar-overlay { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); opacity: 0; pointer-events: none; z-index: 40; transition: var(--transition); }
+    .sidebar-overlay.mobile-open { opacity: 1; pointer-events: all; }
+  }
+
   .sidebar-logo { padding: 22px 20px 16px; border-bottom: 1px solid var(--border); }
   .logo-icon { font-size: 28px; display: block; }
   .logo-name { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--accent); line-height: 1; margin-top: 4px; }
@@ -166,6 +186,11 @@ const CSS = `
     display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: white; flex-shrink: 0; }
   .profile-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; }
   .profile-plan { font-size: 10px; color: var(--accent); font-weight: 600; }
+
+  /* Hamburger button */
+  .hamburger-btn { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 8px; background: none; border: none; color: var(--text); }
+  .hamburger-btn span { width: 22px; height: 2px; background: currentColor; border-radius: 1px; transition: var(--transition); }
+  @media (max-width: 768px) { .hamburger-btn { display: flex; } }
 
   /* Main */
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -230,6 +255,18 @@ const CSS = `
   .badge-waived { background: var(--blue-light); color: var(--blue); }
   .badge-discount { background: var(--amber-light); color: var(--amber); }
   .badge-batch { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+
+  /* Toggle Switch */
+  .toggle-input { position: relative; width: 48px; height: 28px; background: var(--bg4); border-radius: 100px; border: none; cursor: pointer; transition: var(--transition); appearance: none; padding: 0; }
+  .toggle-input:checked { background: var(--accent); }
+  .toggle-input::after { content: ''; position: absolute; width: 24px; height: 24px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: var(--transition); }
+  .toggle-input:checked::after { left: 22px; }
+
+  /* Settings section */
+  .settings-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .settings-item:last-child { border-bottom: none; }
+  .settings-item-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .settings-item-desc { font-size: 12px; color: var(--text4); }
 
   /* Table */
   .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
@@ -424,6 +461,7 @@ const I = {
   Tag: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
   Alert: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
   Waive: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>,
+  LogOut: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
 };
 
 // ─── Toast System ─────────────────────────────────────────────────────────────
@@ -1296,34 +1334,99 @@ function ReportsTab({ batches, students, payments }) {
 }
 
 // ─── SETTINGS TAB ─────────────────────────────────────────────────────────────
-function SettingsTab({ profile, setProfile, toast }) {
+function SettingsTab({ profile, setProfile, features, setFeatures, theme, setTheme, toast }) {
   const [f, setF] = useState({ ...profile });
-  const save = async () => { setProfile(f); await dbSet(KEYS.profile, f); toast("Profile saved!", { icon: "✅" }); };
+
+  const saveProfile = async () => {
+    setProfile(f);
+    await dbSet(KEYS.profile, f);
+    toast("Profile saved!", { icon: "✅" });
+  };
+
+  const updateFeature = async (key, value) => {
+    const newFeatures = { ...features, [key]: value };
+    setFeatures(newFeatures);
+    await dbSet(KEYS.features, newFeatures);
+    toast(`${key} toggled!`, { icon: "✅" });
+  };
+
   return (
-    <div className="grid-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Profile Settings */}
       <div className="card">
-        <div className="card-header"><div className="card-title">Business Profile</div></div>
+        <div className="card-header">
+          <div><div className="card-title">👤 Business Profile</div><div className="card-subtitle">Manage your academy information</div></div>
+        </div>
         {[["name", "Business / Academy Name"], ["gstin", "GSTIN (optional)"], ["address", "Address"], ["phone", "Contact Phone"], ["email", "Email"], ["upiId", "UPI ID (for QR)"]].map(([k, l]) => (
           <div key={k} className="input-group"><label className="input-label">{l}</label><input className="input" value={f[k] || ""} onChange={e => setF(p => ({ ...p, [k]: e.target.value }))} /></div>
         ))}
-        <button className="btn btn-primary" onClick={save}>Save Profile</button>
+        <button className="btn btn-primary" onClick={saveProfile}>💾 Save Profile</button>
       </div>
-      <div>
-        <div className="card" style={{ marginBottom: 14 }}>
-          <div className="card-header"><div className="card-title">Plan & Billing</div></div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid var(--border)" }}>
-            <div><div style={{ fontWeight: 700, fontSize: 16 }}>PRO Plan <span className="badge badge-paid" style={{ fontSize: 10 }}>ACTIVE</span></div><div style={{ fontSize: 12, color: "var(--text4)", marginTop: 3 }}>Unlimited students · GST receipts · Analytics</div></div>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 24, color: "var(--accent)" }}>₹499<span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text4)" }}>/mo</span></div>
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text4)", marginTop: 12 }}>Next billing: April 1, 2026</div>
+
+      {/* Feature Visibility Toggle */}
+      <div className="card">
+        <div className="card-header">
+          <div><div className="card-title">⚙️ Feature Visibility</div><div className="card-subtitle">Control which features are visible in the dashboard</div></div>
         </div>
-        <div className="card">
-          <div className="card-header"><div className="card-title">About GuruPay</div></div>
-          <div style={{ fontSize: 13, color: "var(--text3)", lineHeight: 1.8 }}>
-            Built specifically for <strong>Indian coaching class owners</strong> — yoga trainers, tutors, music teachers, and fitness coaches.<br /><br />
-            Fee tracking · WhatsApp reminders · GST receipts · Monthly reports · CSV export<br /><br />
-            <span style={{ color: "var(--text4)", fontSize: 12 }}>Version 2.0 · Made with ❤️ in India</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {[
+            ["showStudents", "👥 Show Student List", "Display student management"],
+            ["showPayments", "💳 Show Payments & Fees", "Display fee tracking"],
+            ["showReports", "📊 Show Reports & Analytics", "Display reports section"],
+            ["enableNotifications", "🔔 Enable Notifications", "Get alerts for pending fees"],
+          ].map(([key, label, desc]) => (
+            <div key={key} className="settings-item">
+              <div>
+                <div className="settings-item-label">{label}</div>
+                <div className="settings-item-desc">{desc}</div>
+              </div>
+              <input
+                type="checkbox"
+                className="toggle-input"
+                checked={features[key] || false}
+                onChange={(e) => updateFeature(key, e.target.checked)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Theme & Display */}
+      <div className="card">
+        <div className="card-header">
+          <div><div className="card-title">🎨 Appearance</div><div className="card-subtitle">Customize your display</div></div>
+        </div>
+        <div className="settings-item">
+          <div>
+            <div className="settings-item-label">{theme === "light" ? "☀️ Light Mode" : "🌙 Dark Mode"}</div>
+            <div className="settings-item-desc">Switch between light and dark theme</div>
           </div>
+          <input
+            type="checkbox"
+            className="toggle-input"
+            checked={theme === "dark"}
+            onChange={(e) => setTheme(e.target.checked ? "dark" : "light")}
+          />
+        </div>
+      </div>
+
+      {/* Plan & Billing */}
+      <div className="card">
+        <div className="card-header"><div className="card-title">💎 Plan & Billing</div></div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid var(--border)" }}>
+          <div><div style={{ fontWeight: 700, fontSize: 16 }}>PRO Plan <span className="badge badge-paid" style={{ fontSize: 10 }}>ACTIVE</span></div><div style={{ fontSize: 12, color: "var(--text4)", marginTop: 3 }}>Unlimited students · GST receipts · Analytics</div></div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, color: "var(--accent)" }}>₹499<span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text4)" }}>/mo</span></div>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text4)", marginTop: 12 }}>Next billing: April 1, 2026</div>
+      </div>
+
+      {/* About */}
+      <div className="card">
+        <div className="card-header"><div className="card-title">ℹ️ About GuruPay</div></div>
+        <div style={{ fontSize: 13, color: "var(--text3)", lineHeight: 1.8 }}>
+          Built for <strong>Indian coaching class owners</strong> — yoga trainers, tutors, music teachers, and fitness coaches.<br /><br />
+          Fee tracking · WhatsApp reminders · GST receipts · Monthly reports · CSV export<br /><br />
+          <span style={{ color: "var(--text4)", fontSize: 12 }}>Version 2.1 · Made with ❤️ in India</span>
         </div>
       </div>
     </div>
@@ -1402,7 +1505,7 @@ function BulkReminderModal({ unpaid, students, batches, selectedMonth, onClose }
 }
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
-function GuruPayPro() {
+function GuruPayPro({ userId, userEmail }) {
   const [tab, setTab] = useState("dashboard");
   const [batches, setBatches] = useState([]);
   const [students, setStudents] = useState([]);
@@ -1412,6 +1515,8 @@ function GuruPayPro() {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState("light");
   const [modal, setModal] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [features, setFeatures] = useState(DEFAULT_FEATURES);
   const { toasts, push: toast, dismiss } = useToast();
 
   // Pending handler stored in ref (to avoid stale closure in FeesTab)
@@ -1419,11 +1524,12 @@ function GuruPayPro() {
 
   useEffect(() => {
     (async () => {
-      const [b, s, p, pr, th] = await Promise.all([
+      const [b, s, p, pr, th, feat] = await Promise.all([
         dbGet(KEYS.batches, SEED_BATCHES), dbGet(KEYS.students, SEED_STUDENTS),
         dbGet(KEYS.payments, SEED_PAYMENTS), dbGet(KEYS.profile, SEED_PROFILE), dbGet(KEYS.theme, "light"),
+        dbGet(KEYS.features, DEFAULT_FEATURES),
       ]);
-      setBatches(b); setStudents(s); setPayments(p); setProfile(pr); setTheme(th);
+      setBatches(b); setStudents(s); setPayments(p); setProfile(pr); setTheme(th); setFeatures(feat);
       setLoading(false);
     })();
   }, []);
@@ -1482,13 +1588,17 @@ function GuruPayPro() {
     toast("Fee marked as paid!", { icon: "✅", onUndo: async () => { setPayments(prev); await dbSet(KEYS.payments, prev); } });
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
   const unpaidCount = payments.filter(p => p.month === curMonth && p.status === "unpaid").length;
 
   const NAV = [
     ["dashboard", "Dashboard", <I.Dashboard />, 0],
-    ["fees", "Fee Tracking", <I.Fees />, unpaidCount],
-    ["batches", "Batches & Students", <I.Batches />, 0],
-    ["reports", "Reports", <I.Reports />, 0],
+    ...(features.showPayments ? [["fees", "Fee Tracking", <I.Fees />, unpaidCount]] : []),
+    ...(features.showStudents ? [["batches", "Batches & Students", <I.Batches />, 0]] : []),
+    ...(features.showReports ? [["reports", "Reports", <I.Reports />, 0]] : []),
     ["settings", "Settings", <I.Settings />, 0],
   ];
 
@@ -1529,41 +1639,65 @@ function GuruPayPro() {
       <ToastStack toasts={toasts} dismiss={dismiss} />
 
       <div className="app">
+        {/* Sidebar Overlay for Mobile */}
+        <div className={`sidebar-overlay ${sidebarOpen ? "mobile-open" : ""}`} onClick={() => setSidebarOpen(false)} />
+
         {/* Sidebar */}
-        <aside className="sidebar">
+        <aside className={`sidebar ${sidebarOpen ? "mobile-open" : ""}`}>
           <div className="sidebar-logo">
             <span className="logo-icon">🪔</span>
             <div className="logo-name">GuruPay</div>
-            <div className="logo-sub">Coaching Manager Pro</div>
+            <div className="logo-sub">Pro Manager</div>
           </div>
           <nav className="nav">
             {NAV.map(([id, label, icon, badge]) => (
-              <button key={id} className={`nav-btn ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>
+              <button
+                key={id}
+                className={`nav-btn ${tab === id ? "active" : ""}`}
+                onClick={() => {
+                  setTab(id);
+                  setSidebarOpen(false);
+                }}
+              >
                 {icon} <span>{label}</span>
                 {badge > 0 && <span className="nav-badge">{badge}</span>}
               </button>
             ))}
           </nav>
           <div className="sidebar-footer">
-            <div className="profile-card">
+            <div className="profile-card" style={{ marginBottom: 8 }}>
               <div className="avatar">{profile.name[0]}</div>
-              <div><div className="profile-name">{profile.name.split(" ").slice(0, 2).join(" ")}</div><div className="profile-plan">PRO Plan Active</div></div>
+              <div><div className="profile-name">{profile.name.split(" ").slice(0, 2).join(" ")}</div><div className="profile-plan">PRO Active</div></div>
             </div>
+            <button className="btn btn-danger btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={handleLogout}>
+              <I.LogOut /> Logout
+            </button>
           </div>
         </aside>
 
         {/* Main */}
         <div className="main">
           <div className="topbar">
-            <div>
-              <div className="topbar-title">{PAGE_TITLES[tab]}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                <span></span>
+                <span></span>
+                <span></span>
+              </button>
+              <div>
+                <div className="topbar-title">{PAGE_TITLES[tab]}</div>
+              </div>
             </div>
             <div className="topbar-right">
               <button className="theme-btn" onClick={() => setTheme(t => t === "light" ? "dark" : "light")}>
                 {theme === "light" ? <I.Moon /> : <I.Sun />}
               </button>
-              {tab === "batches" && <button className="btn btn-secondary btn-sm" onClick={() => openModal("addStudent")}><I.Plus /> Student</button>}
-              {tab === "batches" && <button className="btn btn-primary btn-sm" onClick={() => openModal("addBatch")}><I.Plus /> Batch</button>}
+              {tab === "batches" && features.showStudents && (
+                <>
+                  <button className="btn btn-secondary btn-sm" onClick={() => openModal("addStudent")}><I.Plus /> Student</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => openModal("addBatch")}><I.Plus /> Batch</button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1572,7 +1706,7 @@ function GuruPayPro() {
             {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} />}
             {tab === "batches" && <BatchesTab batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
-            {tab === "settings" && <SettingsTab profile={profile} setProfile={setProfile} toast={toast} />}
+            {tab === "settings" && <SettingsTab profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} toast={toast} />}
           </div>
         </div>
       </div>
