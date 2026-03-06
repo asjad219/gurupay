@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { I } from '../app';
 import { fmtINR, getInitials } from '../utils';
+import AuthModal from './AuthModal';
 
 const Settings = ({ 
   profile, 
@@ -621,6 +622,8 @@ const Settings = ({
           )}
         </div>
       </div>
+      {/* authentication modal used by several tabs */}
+      <AuthModal isOpen={authModalOpen} initialView={authView} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 };

@@ -27,7 +27,8 @@ const BatchDetails = ({
       .filter(s => s.batchId === batch.id)
       .filter(s => !search || 
         s.name.toLowerCase().includes(search.toLowerCase()) || 
-        s.phone.includes(search)
+        s.phone.includes(search) ||
+        (s.rollNumber && s.rollNumber.toLowerCase().includes(search.toLowerCase()))
       )
       .sort((a, b) => {
         let aVal, bVal;
@@ -248,11 +249,13 @@ const BatchDetails = ({
               <thead>
                 <tr>
                   <th>Student Name</th>
+                  <th>Roll #</th>
                   <th>Phone</th>
                   <th>Email</th>
                   <th>Joining Date</th>
                   <th>Discount</th>
-                  <th>Status</th>
+                  <th>Student Status</th>
+                  <th>Fee Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -282,6 +285,7 @@ const BatchDetails = ({
                             </div>
                           )}
                         </td>
+                        <td style={{ fontSize: '12px' }}>{student.rollNumber || '—'}</td>
                         <td className="td-mono" style={{ fontSize: '12px' }}>{student.phone}</td>
                         <td style={{ fontSize: '12px', color: 'var(--text4)' }}>
                           {student.email || 'No email'}
@@ -298,6 +302,7 @@ const BatchDetails = ({
                             <span style={{ fontSize: '12px', color: 'var(--text4)' }}>None</span>
                           )}
                         </td>
+                        <td>{student.status || 'Active'}</td>
                         <td>
                           {payment ? (
                             <span 
@@ -376,8 +381,14 @@ const BatchDetails = ({
                       <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text)' }}>
                         {student.name}
                       </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text4)', marginBottom: '4px' }}>
+                        Roll #: {student.rollNumber || '—'}
+                      </div>
                       <div style={{ fontSize: '12px', color: 'var(--text4)' }}>
                         📱 {student.phone}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text4)' }}>
+                        Status: {student.status || 'Active'}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>

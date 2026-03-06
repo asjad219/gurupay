@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from './supabase'
 import Login from './Login'
+import Settings from './components/Settings';
 // Wrap your whole app with this auth check:
 export default function Root() {
 const [user, setUser] = useState(null)
@@ -28,7 +29,7 @@ useEffect(() => {
 if (error) return <div style={{ padding: '2rem', color: 'red', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❌ Error: {error}</div>
 if (loading) return <div style={{ padding: '2rem', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⏳ Loading...</div>
 if (!user) return <Login />
-return <GuruPayPro userId={user.id} /> // show app when logged in
+return <GuruPayPro user={user} /> // show app when logged in
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -60,13 +61,13 @@ const SEED_BATCHES = [
   { id: "b3", name: "Guitar – Beginners", subject: "Music", timing: "4:00 – 5:00 PM", fee: 1200, gstRate: 18, capacity: 10, color: "#8b5cf6" },
 ];
 const SEED_STUDENTS = [
-  { id: "s1", name: "Aarav Sharma", phone: "9876543210", email: "aarav@email.com", batchId: "b1", joiningDate: "2025-01-01", notes: "Good progress", discount: 0 },
-  { id: "s2", name: "Priya Patel", phone: "9867534201", email: "priya@email.com", batchId: "b1", joiningDate: "2025-01-05", notes: "", discount: 100 },
-  { id: "s3", name: "Rahul Verma", phone: "9845612370", email: "rahul@email.com", batchId: "b1", joiningDate: "2025-02-01", notes: "Needs extra attention", discount: 0 },
-  { id: "s4", name: "Sneha Gupta", phone: "9812345678", email: "sneha@email.com", batchId: "b2", joiningDate: "2025-01-10", notes: "", discount: 0 },
-  { id: "s5", name: "Karan Mehta", phone: "9765432100", email: "karan@email.com", batchId: "b2", joiningDate: "2025-01-15", notes: "Fee concession", discount: 200 },
-  { id: "s6", name: "Ananya Singh", phone: "9898989898", email: "ananya@email.com", batchId: "b3", joiningDate: "2025-02-01", notes: "", discount: 0 },
-  { id: "s7", name: "Rohan Joshi", phone: "9912345678", email: "rohan@email.com", batchId: "b3", joiningDate: "2025-02-10", notes: "", discount: 0 },
+  { id: "s1", rollNumber: "R001", status: "Active", name: "Aarav Sharma", phone: "9876543210", email: "aarav@email.com", batchId: "b1", joiningDate: "2025-01-01", notes: "Good progress", discount: 0 },
+  { id: "s2", rollNumber: "R002", status: "Active", name: "Priya Patel", phone: "9867534201", email: "priya@email.com", batchId: "b1", joiningDate: "2025-01-05", notes: "", discount: 100 },
+  { id: "s3", rollNumber: "R003", status: "Active", name: "Rahul Verma", phone: "9845612370", email: "rahul@email.com", batchId: "b1", joiningDate: "2025-02-01", notes: "Needs extra attention", discount: 0 },
+  { id: "s4", rollNumber: "R004", status: "Active", name: "Sneha Gupta", phone: "9812345678", email: "sneha@email.com", batchId: "b2", joiningDate: "2025-01-10", notes: "", discount: 0 },
+  { id: "s5", rollNumber: "R005", status: "Active", name: "Karan Mehta", phone: "9765432100", email: "karan@email.com", batchId: "b2", joiningDate: "2025-01-15", notes: "Fee concession", discount: 200 },
+  { id: "s6", rollNumber: "R006", status: "Active", name: "Ananya Singh", phone: "9898989898", email: "ananya@email.com", batchId: "b3", joiningDate: "2025-02-01", notes: "", discount: 0 },
+  { id: "s7", rollNumber: "R007", status: "Active", name: "Rohan Joshi", phone: "9912345678", email: "rohan@email.com", batchId: "b3", joiningDate: "2025-02-10", notes: "", discount: 0 },
 ];
 const calcAmount = (batch, student) => {
   const base = batch.fee - (student.discount || 0);
@@ -633,8 +634,8 @@ function StudentHistoryModal({ student, batches, payments, onClose }) {
 }
 
 // ─── Student Form Modal ───────────────────────────────────────────────────────
-function StudentModal({ student, batches, onSave, onClose }) {
-  const [f, setF] = useState(student || { name: "", phone: "", email: "", batchId: batches[0]?.id || "", joiningDate: today(), notes: "", discount: 0 });
+function StudentModal({ student, batches, onSave, onClose, defaultBatchId }) {
+  const [f, setF] = useState(student || { rollNumber: "", status: "Active", name: "", phone: "", email: "", batchId: defaultBatchId || batches[0]?.id || "", joiningDate: today(), notes: "", discount: 0 });
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const valid = f.name.trim() && f.phone.trim().length === 10 && f.batchId;
   return (
@@ -647,8 +648,17 @@ function StudentModal({ student, batches, onSave, onClose }) {
         </div>
         <div className="modal-body">
           <div className="input-row">
+            <div className="input-group"><label className="input-label">Roll Number</label><input className="input" value={f.rollNumber} onChange={e => set("rollNumber", e.target.value)} placeholder="e.g. R001" /></div>
             <div className="input-group"><label className="input-label">Full Name *</label><input className="input" value={f.name} onChange={e => set("name", e.target.value)} placeholder="Aarav Sharma" /></div>
+          </div>
+          <div className="input-row">
             <div className="input-group"><label className="input-label">Mobile Number *</label><input className="input" value={f.phone} onChange={e => set("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit number" /></div>
+            <div className="input-group"><label className="input-label">Status</label>
+              <select className="input" value={f.status} onChange={e => set("status", e.target.value)}>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
           </div>
           <div className="input-group"><label className="input-label">Email (optional)</label><input className="input" type="email" value={f.email} onChange={e => set("email", e.target.value)} placeholder="student@email.com" /></div>
           <div className="input-row">
@@ -1102,8 +1112,9 @@ function FeesTab({ batches, students, payments, setPayments, selectedMonth, setS
 }
 
 // ─── BATCHES & STUDENTS TAB ───────────────────────────────────────────────────
-function BatchesTab({ batches, setBatches, students, setStudents, payments, setPayments, toast, openModal }) {
+function BatchesTab({ batches, setBatches, students, setStudents, payments, setPayments, toast, openModal, selectedBatch, setSelectedBatch }) {
   const [search, setSearch] = useState("");
+  const [batchFilter, setBatchFilter] = useState("");
 
   const deleteBatch = async (batch) => {
     const hasStu = students.some(s => s.batchId === batch.id);
@@ -1111,6 +1122,9 @@ function BatchesTab({ batches, setBatches, students, setStudents, payments, setP
     const prev = [...batches];
     const nb = batches.filter(b => b.id !== batch.id);
     setBatches(nb); await dbSet(KEYS.batches, nb);
+    if (selectedBatch && selectedBatch.id === batch.id) {
+      setSelectedBatch(null);
+    }
     toast("Batch deleted", { icon: "🗑️", onUndo: async () => { setBatches(prev); await dbSet(KEYS.batches, prev); } });
   };
 
@@ -1124,19 +1138,51 @@ function BatchesTab({ batches, setBatches, students, setStudents, payments, setP
   };
 
   const filteredStudents = students.filter(s =>
-    !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.phone.includes(search)
+    (!search ||
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.phone.includes(search) ||
+      (s.rollNumber && s.rollNumber.toLowerCase().includes(search.toLowerCase()))
+    ) &&
+    (!batchFilter || s.batchId === batchFilter)
   );
 
   const getCurPayment = (sId) => payments.find(p => p.studentId === sId && p.month === curMonth);
   const getBatch = id => batches.find(b => b.id === id);
 
+  // if a specific batch is selected, show the detail panel
+  if (selectedBatch) {
+    return (
+      <div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setSelectedBatch(null)} style={{ marginBottom: 12 }}><I.X /> Back to all batches</button>
+        <BatchDetails
+          batch={selectedBatch}
+          students={students}
+          payments={payments}
+          onEditBatch={(b) => openModal("editBatch", b)}
+          onDeleteBatch={(b) => openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete \"${b.name}\"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) })}
+          onAddStudent={() => openModal("addStudent", { batchId: selectedBatch.id })}
+          onEditStudent={(s) => openModal("editStudent", s)}
+          onDeleteStudent={(s) => openModal("confirm", { icon: "🗑️", title: "Remove Student?", msg: `Remove ${s.name} from this batch?`, confirmLabel: "Remove", danger: true, onConfirm: () => deleteStudent(s) })}
+          onMarkPaid={(s,p) => openModal("markPaid", { student: s, batch: selectedBatch, payment: p })}
+          onWaiveFee={(s,p) => openModal("waive", { student: s, batch: selectedBatch, payment: p })}
+          onSendReminder={(s) => openModal("wa", { student: s, batch: selectedBatch })}
+          toast={toast}
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div className="toolbar">
+      <div className="toolbar" style={{ gap: 8, flexWrap: "wrap" }}>
         <div className="search-wrap" style={{ flex: "1 1 200px", maxWidth: 300 }}>
           <I.Search /><input className="input" style={{ paddingLeft: 34 }} placeholder="Search students..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+        <select className="input" value={batchFilter} onChange={e => setBatchFilter(e.target.value)} style={{ flex: "0 0 160px" }}>
+          <option value="">All Batches</option>
+          {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button className="btn btn-secondary" onClick={() => openModal("addBatch")}><I.Plus /> New Batch</button>
           <button className="btn btn-primary" onClick={() => openModal("addStudent")}><I.Plus /> Add Student</button>
         </div>
@@ -1149,7 +1195,7 @@ function BatchesTab({ batches, setBatches, students, setStudents, payments, setP
           const capPct = Math.min(100, Math.round(enrolled / b.capacity * 100));
           const mPaid = payments.filter(p => p.month === curMonth && p.status === "paid" && students.find(s => s.id === p.studentId && s.batchId === b.id)).length;
           return (
-            <div key={b.id} className="batch-card">
+            <div key={b.id} className="batch-card" onClick={() => setSelectedBatch(b)} style={{ cursor: 'pointer' }}>
               <div className="batch-strip" style={{ background: b.color }} />
               <div className="batch-body">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
@@ -1158,8 +1204,8 @@ function BatchesTab({ batches, setBatches, students, setStudents, payments, setP
                     <div style={{ fontSize: 11.5, color: "var(--text4)", marginTop: 2 }}>{b.subject} · {b.timing}</div>
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openModal("editBatch", b)}><I.Edit /></button>
-                    <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={() => openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete "${b.name}"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) })}><I.Trash /></button>
+                    <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); openModal("editBatch", b); }}><I.Edit /></button>
+                    <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={(e) => { e.stopPropagation(); openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete \"${b.name}\"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) }); }}><I.Trash /></button>
                   </div>
                 </div>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: b.color, marginBottom: 8 }}>
@@ -1325,106 +1371,6 @@ function ReportsTab({ batches, students, payments }) {
   );
 }
 
-// ─── SETTINGS TAB ─────────────────────────────────────────────────────────────
-function SettingsTab({ profile, setProfile, features, setFeatures, theme, setTheme, toast }) {
-  const [f, setF] = useState({ ...profile });
-
-  const saveProfile = async () => {
-    setProfile(f);
-    await dbSet(KEYS.profile, f);
-    toast("Profile saved!", { icon: "✅" });
-  };
-
-  const updateFeature = async (key, value) => {
-    const newFeatures = { ...features, [key]: value };
-    setFeatures(newFeatures);
-    await dbSet(KEYS.features, newFeatures);
-    toast(`${key} toggled!`, { icon: "✅" });
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Profile Settings */}
-      <div className="card">
-        <div className="card-header">
-          <div><div className="card-title">👤 Business Profile</div><div className="card-subtitle">Manage academy information</div></div>
-        </div>
-        {[["name", "Business Name"], ["gstin", "GSTIN (optional)"], ["address", "Address"], ["phone", "Phone"], ["email", "Email"], ["upiId", "UPI ID"]].map(([k, l]) => (
-          <div key={k} className="input-group"><label className="input-label">{l}</label><input className="input" value={f[k] || ""} onChange={e => setF(p => ({ ...p, [k]: e.target.value }))} /></div>
-        ))}
-        <button className="btn btn-primary" onClick={saveProfile}>💾 Save Profile</button>
-      </div>
-
-      {/* Feature Visibility Toggle */}
-      <div className="card">
-        <div className="card-header">
-          <div><div className="card-title">⚙️ Feature Visibility</div><div className="card-subtitle">Control visible features</div></div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          {[
-            ["showStudents", "👥 Students", "Show student list"],
-            ["showPayments", "💳 Payments", "Show fee tracking"],
-            ["showReports", "📊 Reports", "Show analytics"],
-            ["enableNotifications", "🔔 Notifications", "Get alerts"],
-            ["enableWaiveFee", "🔵 Waive Fee", "Allow fee waivers"],
-            ["enableGST", "💰 GST", "Enable GST calculation"],
-          ].map(([key, label, desc]) => (
-            <div key={key} className="settings-item">
-              <div>
-                <div className="settings-item-label">{label}</div>
-                <div className="settings-item-desc">{desc}</div>
-              </div>
-              <input
-                type="checkbox"
-                className="toggle-input"
-                checked={features[key] || false}
-                onChange={(e) => updateFeature(key, e.target.checked)}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Theme & Display */}
-      <div className="card">
-        <div className="card-header">
-          <div><div className="card-title">🎨 Appearance</div><div className="card-subtitle">Display settings</div></div>
-        </div>
-        <div className="settings-item">
-          <div>
-            <div className="settings-item-label">{theme === "light" ? "☀️ Light Mode" : "🌙 Dark Mode"}</div>
-            <div className="settings-item-desc">Switch theme</div>
-          </div>
-          <input
-            type="checkbox"
-            className="toggle-input"
-            checked={theme === "dark"}
-            onChange={(e) => setTheme(e.target.checked ? "dark" : "light")}
-          />
-        </div>
-      </div>
-
-      {/* Plan & Billing */}
-      <div className="card">
-        <div className="card-header"><div className="card-title">💎 Plan & Billing</div></div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid var(--border)" }}>
-          <div><div style={{ fontWeight: 700, fontSize: 16 }}>PRO Plan <span className="badge badge-paid" style={{ fontSize: 10 }}>ACTIVE</span></div><div style={{ fontSize: 12, color: "var(--text4)", marginTop: 3 }}>Unlimited students · Analytics</div></div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, color: "var(--accent)" }}>₹499<span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text4)" }}>/mo</span></div>
-        </div>
-        <div style={{ fontSize: 12, color: "var(--text4)", marginTop: 12 }}>Next billing: April 1, 2026</div>
-      </div>
-
-      {/* About */}
-      <div className="card">
-        <div className="card-header"><div className="card-title">ℹ️ About GuruPay</div></div>
-        <div style={{ fontSize: 13, color: "var(--text3)", lineHeight: 1.8 }}>
-          Fee tracking · WhatsApp reminders · Reports · CSV export<br /><br />
-          <span style={{ color: "var(--text4)", fontSize: 12 }}>Version 2.1 · Made with ❤️ in India</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── GENERATE FEES MODAL ──────────────────────────────────────────────────────
 function GenerateFeesModal({ batches, students, payments, setPayments, selectedMonth, toast, onClose }) {
@@ -1498,7 +1444,7 @@ function BulkReminderModal({ unpaid, students, batches, selectedMonth, onClose }
 }
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
-function GuruPayPro({ userId, userEmail }) {
+function GuruPayPro({ user }) {
   const [tab, setTab] = useState("dashboard");
   const [batches, setBatches] = useState([]);
   const [students, setStudents] = useState([]);
@@ -1510,6 +1456,7 @@ function GuruPayPro({ userId, userEmail }) {
   const [modal, setModal] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [features, setFeatures] = useState(DEFAULT_FEATURES);
+  const [selectedBatch, setSelectedBatch] = useState(null);
   const { toasts, push: toast, dismiss } = useToast();
 
   // Pending handler stored in ref (to avoid stale closure in FeesTab)
@@ -1522,7 +1469,13 @@ function GuruPayPro({ userId, userEmail }) {
         dbGet(KEYS.payments, SEED_PAYMENTS), dbGet(KEYS.profile, SEED_PROFILE), dbGet(KEYS.theme, "light"),
         dbGet(KEYS.features, DEFAULT_FEATURES),
       ]);
-      setBatches(b); setStudents(s); setPayments(p); setProfile(pr); setTheme(th); setFeatures(feat);
+      // ensure new fields exist on loaded students
+      const normalizedStudents = (s || []).map(st => ({
+        rollNumber: st.rollNumber || "",
+        status: st.status || "Active",
+        ...st
+      }));
+      setBatches(b); setStudents(normalizedStudents); setPayments(p); setProfile(pr); setTheme(th); setFeatures(feat);
       setLoading(false);
     })();
   }, []);
@@ -1616,7 +1569,7 @@ function GuruPayPro({ userId, userEmail }) {
       {modal?.type === "wa" && <WaModal student={modal.data.student} batch={modal.data.batch} month={selectedMonth} onClose={closeModal} />}
       {modal?.type === "receipt" && <ReceiptModal {...modal.data} profile={profile} onClose={closeModal} />}
       {modal?.type === "studentHistory" && <StudentHistoryModal student={modal.data} batches={batches} payments={payments} onClose={closeModal} />}
-      {modal?.type === "addStudent" && <StudentModal batches={batches} onSave={saveStudent} onClose={closeModal} />}
+      {modal?.type === "addStudent" && <StudentModal batches={batches} defaultBatchId={modal.data?.batchId} onSave={saveStudent} onClose={closeModal} />}
       {modal?.type === "editStudent" && <StudentModal student={modal.data} batches={batches} onSave={saveStudent} onClose={closeModal} />}
       {modal?.type === "addBatch" && <BatchModal onSave={saveBatch} onClose={closeModal} />}
       {modal?.type === "editBatch" && <BatchModal batch={modal.data} onSave={saveBatch} onClose={closeModal} />}
@@ -1662,10 +1615,7 @@ function GuruPayPro({ userId, userEmail }) {
               <div className="avatar">{profile.name[0]}</div>
               <div><div className="profile-name">{profile.name.split(" ").slice(0, 2).join(" ")}</div><div className="profile-plan">PRO</div></div>
             </div>
-            <button className="btn btn-danger btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={handleLogout}>
-              <I.LogOut /> Logout
-            </button>
-          </div>
+            </div>
         </aside>
 
         {/* Main */}
@@ -1687,7 +1637,9 @@ function GuruPayPro({ userId, userEmail }) {
               </button>
               {tab === "batches" && features.showStudents && (
                 <>
-                  <button className="btn btn-secondary btn-sm" onClick={() => openModal("addStudent")}><I.Plus /> Student</button>
+                  {!selectedBatch && (
+                    <button className="btn btn-secondary btn-sm" onClick={() => openModal("addStudent", { batchId: selectedBatch?.id })}><I.Plus /> Student</button>
+                  )}
                   <button className="btn btn-primary btn-sm" onClick={() => openModal("addBatch")}><I.Plus /> Batch</button>
                 </>
               )}
@@ -1697,9 +1649,9 @@ function GuruPayPro({ userId, userEmail }) {
           <div className="content">
             {tab === "dashboard" && <DashboardTab {...commonProps} />}
             {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} />}
-            {tab === "batches" && <BatchesTab batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} />}
+            {tab === "batches" && <BatchesTab batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} selectedBatch={selectedBatch} setSelectedBatch={setSelectedBatch} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
-            {tab === "settings" && <SettingsTab profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} toast={toast} />}
+            {tab === "settings" && <Settings profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} toast={toast} user={user} />}
           </div>
         </div>
       </div>
