@@ -107,7 +107,7 @@ async function dbSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+  @import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -150,17 +150,23 @@ const CSS = `
   /* Mobile sidebar styles */
   .sidebar-overlay { display: none; }
   @media (max-width: 768px) {
-    .sidebar { position: absolute; left: 0; top: 0; bottom: 0; transform: translateX(-100%); box-shadow: var(--shadow-lg); }
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); box-shadow: var(--shadow-lg); border-right: none; border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
     .sidebar.mobile-open { transform: translateX(0); }
-    .sidebar-overlay { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); opacity: 0; pointer-events: none; z-index: 40; transition: var(--transition); }
-    .sidebar-overlay.mobile-open { opacity: 1; pointer-events: all; }
+    .sidebar-overlay { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); opacity: 0; pointer-events: none; z-index: 40; transition: opacity 0.2s ease-out; }
+    .sidebar-overlay.mobile-open { opacity: 1; pointer-events: all; backdrop-filter: blur(2px); }
   }
 
   /* Hamburger button */
   .hamburger-btn { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 8px; background: none; border: none; color: var(--text); }
   .hamburger-btn span { width: 22px; height: 2px; background: currentColor; border-radius: 1px; transition: var(--transition); }
-  @media (max-width: 768px) { .hamburger-btn { display: flex; } }
-  .sidebar-logo { padding: 22px 20px 16px; border-bottom: 1px solid var(--border); }
+  @media (max-width: 768px) { .hamburger-btn { display: flex; position: relative; z-index: 60; } }
+
+  /* Hamburger animation */
+  .hamburger-btn.is-active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger-btn.is-active span:nth-child(2) { opacity: 0; }
+  .hamburger-btn.is-active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  
+   .sidebar-logo { padding: 22px 20px 16px; border-bottom: 1px solid var(--border); }
   .logo-icon { font-size: 28px; display: block; }
   .logo-name { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--accent); line-height: 1; margin-top: 4px; }
   .logo-sub { font-size: 11px; color: var(--text4); margin-top: 2px; letter-spacing: .5px; }
@@ -187,8 +193,8 @@ const CSS = `
 
   /* Main */
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  .topbar { height: 57px; border-bottom: 1px solid var(--border); display: flex; align-items: center;
-    padding: 0 24px; gap: 12px; background: var(--bg2); flex-shrink: 0; }
+  .topbar { height: 60px; border-bottom: 1px solid var(--border); display: flex; align-items: center;
+    padding: 0 16px; gap: 12px; background: var(--bg2); flex-shrink: 0; }
   .topbar-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text); }
   .topbar-sub { font-size: 12px; color: var(--text4); margin-left: 2px; }
   .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
@@ -229,12 +235,12 @@ const CSS = `
   .btn-secondary:hover { background: var(--bg4); }
   .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid rgba(220,38,38,.2); }
   .btn-danger:hover { background: var(--red); color: #fff; }
-  .btn-ghost { background: none; color: var(--text3); border: 1px solid transparent; }
+  .btn-ghost { background: none; color: var(--text3); border: 1.0px solid transparent; }
   .btn-ghost:hover { background: var(--bg3); color: var(--text); }
   .btn-icon { padding: 7px; border-radius: var(--radius-sm); }
   .btn-wa { background: #25d366; color: #fff; }
   .btn-wa:hover { background: #1da851; }
-  .btn-amber { background: var(--amber-light); color: var(--amber); border: 1px solid rgba(217,119,6,.2); }
+  .btn-amber { background: var(--amber-light); color: var(--amber); border: 1.0px solid rgba(217,119,6,.2); }
   .btn-amber:hover { background: var(--amber); color: #fff; }
   .btn-sm { padding: 5px 10px; font-size: 12px; gap: 5px; }
   .btn-lg { padding: 11px 22px; font-size: 14px; border-radius: var(--radius); }
@@ -404,8 +410,8 @@ const CSS = `
     .stat-grid { grid-template-columns: 1fr 1fr; }
     .grid-2 { grid-template-columns: 1fr; }
     .grid-3 { grid-template-columns: 1fr 1fr; }
-    .content { padding: 14px; }
-    .topbar { padding: 0 14px; }
+    .content { padding: 16px; }
+    .topbar { padding: 0 16px; }
     .nav-btn { justify-content: center; padding: 10px; }
     .avatar { margin: 0 auto; }
     .profile-card { justify-content: center; }
@@ -436,25 +442,25 @@ const I = {
   Batches: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
   Reports: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
   Settings: () => <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
-  Plus: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  Edit: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-  Trash: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
-  Undo: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>,
-  Check: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>,
-  X: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  Search: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  WA: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>,
-  Receipt: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-  History: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/><polyline points="12 7 12 12 15 15"/></svg>,
-  Download: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-  Sun: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
-  Moon: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
-  Eye: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
-  Zap: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-  Tag: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
-  Alert: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-  Waive: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>,
-  LogOut: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
+  Plus: () => <svg className="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  Edit: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  Trash: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
+  Undo: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>,
+  Check: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>,
+  X: () => <svg className="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Search: () => <svg className="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  WA: () => <svg className="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>,
+  Receipt: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  History: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/><polyline points="12 7 12 12 15 15"/></svg>,
+  Download: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  Sun: () => <svg className="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
+  Moon: () => <svg className="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
+  Eye: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  Zap: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  Tag: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
+  Alert: () => <svg className="nav-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  Waive: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>,
+  LogOut: () => <svg className="nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
 };
 
 export { I };
@@ -838,7 +844,7 @@ function DashboardTab({ batches, students, payments, selectedMonth, setSelectedM
           { icon: "🎓", iconBg: "#f5f3ff", label: "Students", val: students.length, sub: `${batches.length} batches`, color: "var(--purple)" },
         ].map(s => (
           <div key={s.label} className="stat-card">
-            <div className="stat-icon-wrap" style={{ background: s.iconBg }}>{s.icon}</div>
+            <div style={{ background: s.iconBg }} className="stat-icon-wrap">{s.icon}</div>
             <div className="stat-val" style={{ color: s.color }}>{s.val}</div>
             <div className="stat-lbl">{s.label}</div>
             <div className="stat-sub">{s.sub}</div>
@@ -885,9 +891,9 @@ function DashboardTab({ batches, students, payments, selectedMonth, setSelectedM
               if (!s || !b) return null;
               return (
                 <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
-                  <div className="dot overdue" style={{ background: "var(--red)" }} />
+                  <div style={{ background: "var(--red)" }} className="dot overdue" />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, truncate: true }}>{s.name}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13 }} truncate="true">{s.name}</div>
                     <div style={{ fontSize: 11, color: "var(--text4)" }}>{b.name}</div>
                   </div>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)" }}>{fmtINR(p.amount)}</div>
@@ -916,9 +922,9 @@ function DashboardTab({ batches, students, payments, selectedMonth, setSelectedM
                     return (
                       <tr key={p.id}>
                         <td className="td-primary">{s.name}</td>
-                        <td><span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span className="dot" style={{ background: b.color }} />{b.name}</span></td>
+                        <td><span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ background: b.color }} className="dot" />{b.name}</span></td>
                         <td className="td-mono" style={{ color: "var(--accent)", fontWeight: 700 }}>{fmtINR(p.amount + (p.lateFee || 0))}</td>
-                        <td style={{ color: "var(--text4)", fontSize: 12 }}>{fmtDate(p.paidOn)}</td>
+                        <td style={{ fontSize: 12, color: "var(--text4)" }}>{fmtDate(p.paidOn)}</td>
                         <td><button className="btn btn-secondary btn-sm" onClick={() => openModal("receipt", { student: s, batch: b, payment: p })}><I.Receipt /> Receipt</button></td>
                       </tr>
                     );
@@ -960,13 +966,12 @@ function FeesTab({ batches, students, payments, setPayments, selectedMonth, setS
   const rate = mPayments.length ? Math.round((paid.length) / mPayments.length * 100) : 0;
 
   const handleMarkPaid = async (payment, { paidOn, lateFee, notes, amount }) => {
-    const _prev = [...payments];
+    const prev = [...payments];
     const np = payments.map(p => p.id === payment.id
       ? { ...p, status: "paid", paidOn, lateFee, notes, amount }
       : p);
-    setPayments(np);
-    await dbSet(KEYS.payments, np);
-    toast("Fee marked as paid!", { icon: "✅", onUndo: async () => { setPayments(_prev); await dbSet(KEYS.payments, _prev); } });
+    setPayments(np); await dbSet(KEYS.payments, np);
+    toast("Fee marked as paid!", { icon: "✅", onUndo: async () => { setPayments(prev); await dbSet(KEYS.payments, prev); } });
   };
 
   const handleUndo = async (payment) => {
@@ -992,7 +997,7 @@ function FeesTab({ batches, students, payments, setPayments, selectedMonth, setS
       const p = getPayment(s.id, selectedMonth);
       rows.push([s.name, s.phone, b?.name, monthLabel(selectedMonth), p ? fmtINR(p.amount) : "—", p?.status || "not generated", p?.paidOn || "—", p?.lateFee || 0, p?.notes || ""]);
     });
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    const csv = rows.map(r => r.map(c => `\"${c}\"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `GuruPay_${selectedMonth}.csv`; a.click();
     toast("CSV exported!", { icon: "📥" });
@@ -1059,10 +1064,10 @@ function FeesTab({ batches, students, payments, setPayments, selectedMonth, setS
                 return (
                   <tr key={s.id}>
                     <td>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div>
-                      <div style={{ fontSize: 11, color: "var(--text4)" }}>📱 {s.phone}</div>
+                      <div className="td-primary">{s.name}</div>
+                      {s.notes && <div style={{ fontSize: 11, color: "var(--amber)" }}>📝 {s.notes}</div>}
                     </td>
-                    <td><span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5 }}><span className="dot" style={{ background: b.color }} />{b.name}</span></td>
+                    <td>{b && <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5 }}><span style={{ background: b.color }} className="dot" />{b.name}</span>}</td>
                     <td>
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700 }}>{fmtINR(amt + (p?.lateFee || 0))}</div>
                       {s.discount > 0 && <div style={{ fontSize: 10, color: "var(--amber)" }}>₹{s.discount} discount</div>}
@@ -1078,25 +1083,9 @@ function FeesTab({ batches, students, payments, setPayments, selectedMonth, setS
                     <td style={{ fontSize: 12, color: "var(--text4)" }}>{p?.status === "paid" ? fmtDate(p.paidOn) : "—"}</td>
                     <td>
                       <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
-                        {(!p || p.status === "unpaid") && <button className="btn btn-primary btn-sm" onClick={() => openModal("markPaid", { student: s, batch: b, payment: p })}><I.Check /> Paid</button>}
-                        {(!p || p.status === "unpaid") && <button className="btn btn-wa btn-sm" onClick={() => openModal("wa", { student: s, batch: b })}><I.WA /></button>}
-                        {(!p || p.status === "unpaid") && <button className="btn btn-amber btn-sm" onClick={() => openModal("waive", { student: s, batch: b, payment: p })}><I.Waive /></button>}
-                        {p?.status === "paid" && <button className="btn btn-secondary btn-sm" onClick={() => openModal("receipt", { student: s, batch: b, payment: p })}><I.Receipt /></button>}
-                        {p?.status === "paid" && (
-                          <button className="btn btn-danger btn-sm" onClick={() => openModal("confirm", {
-                            icon: "↩️", title: "Revert Payment?", msg: `Mark ${s.name}'s fee as unpaid for ${monthLabel(selectedMonth)}?`,
-                            confirmLabel: "Revert", onConfirm: () => handleUndo(p),
-                          })}><I.Undo /></button>
-                        )}
-                        {p?.status === "waived" && (
-                          <button className="btn btn-danger btn-sm" onClick={() => openModal("confirm", {
-                            icon: "↩️", title: "Remove Waiver?", msg: `Restore fee for ${s.name}?`,
-                            confirmLabel: "Remove", onConfirm: async () => {
-                              const np = payments.map(pm => pm.id === p.id ? { ...pm, status: "unpaid", notes: "" } : pm);
-                              setPayments(np); await dbSet(KEYS.payments, np);
-                            },
-                          })}><I.Undo /></button>
-                        )}
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openModal("studentHistory", s)} title="View history"><I.History /></button>
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openModal("editStudent", s)} title="Edit"><I.Edit /></button>
+                        <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={() => openModal("confirm", { icon: "🗑️", title: "Remove Student?", msg: `Remove ${s.name} from all batches and delete their payment records?`, confirmLabel: "Remove", danger: true, onConfirm: () => deleteStudent(s) })} title="Delete"><I.Trash /></button>
                       </div>
                     </td>
                   </tr>
@@ -1148,7 +1137,7 @@ function BatchesTab({ batches, setBatches, students, setStudents, payments, setP
     (!batchFilter || s.batchId === batchFilter)
   );
 
-  const getCurPayment = (sId) => payments.find(p => p.studentId === sId && p.month === curMonth);
+  const getCurPayment = (sId) => payments.find(p => p.id === sId && p.month === curMonth);
   const getBatch = id => batches.find(b => b.id === id);
 
   // if a specific batch is selected, show the detail panel
@@ -1161,7 +1150,7 @@ function BatchesTab({ batches, setBatches, students, setStudents, payments, setP
           students={students}
           payments={payments}
           onEditBatch={(b) => openModal("editBatch", b)}
-          onDeleteBatch={(b) => openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete \"${b.name}\"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) })}
+          onDeleteBatch={(b) => openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete "${b.name}"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) })}
           onAddStudent={() => openModal("addStudent", { batchId: selectedBatch.id })}
           onEditStudent={(s) => openModal("editStudent", s)}
           onDeleteStudent={(s) => openModal("confirm", { icon: "🗑️", title: "Remove Student?", msg: `Remove ${s.name} from this batch?`, confirmLabel: "Remove", danger: true, onConfirm: () => deleteStudent(s) })}
@@ -1207,7 +1196,7 @@ function BatchesTab({ batches, setBatches, students, setStudents, payments, setP
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); openModal("editBatch", b); }}><I.Edit /></button>
-                    <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={(e) => { e.stopPropagation(); openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete \"${b.name}\"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) }); }}><I.Trash /></button>
+                    <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={(e) => { e.stopPropagation(); openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete "${b.name}"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) }); }}><I.Trash /></button>
                   </div>
                 </div>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: b.color, marginBottom: 8 }}>
@@ -1246,10 +1235,10 @@ function BatchesTab({ batches, setBatches, students, setStudents, payments, setP
                       {s.notes && <div style={{ fontSize: 11, color: "var(--amber)" }}>📝 {s.notes}</div>}
                     </td>
                     <td className="td-mono" style={{ fontSize: 12 }}>{s.phone}</td>
-                    <td>{b && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span className="dot" style={{ background: b.color }} />{b.name}</span>}</td>
+                    <td>{b && <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5 }}><span style={{ background: b.color }} className="dot" />{b.name}</span>}</td>
                     <td style={{ fontSize: 12, color: "var(--text4)" }}>{fmtDate(s.joiningDate)}</td>
                     <td>{s.discount > 0 ? <span className="badge badge-discount">– {fmtINR(s.discount)}</span> : <span style={{ color: "var(--text4)", fontSize: 12 }}>None</span>}</td>
-                    <td>{p ? <span className={`badge ${p.status === "paid" ? "badge-paid" : p.status === "waived" ? "badge-waived" : "badge-unpaid"}`}>{p.status === "paid" ? "Paid" : p.status === "waived" ? "Waived" : "Due"}</span> : <span style={{ fontSize: 12, color: "var(--text4)" }}>—</span>}</td>
+                    <td>{p ? <span className={`badge ${p.status === "paid" ? "badge-paid" : p.status === "waived" ? "badge-waived" : "badge-unpaid"}`}>{p.status === "paid" ? "Paid" : p.status === "waived" ? "Waived" : "Due"}</span> : <span style={{ fontSize: 12, color: "var(--text4)"}}>—</span>}</td>
                     <td>
                       <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
                         <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openModal("studentHistory", s)} title="View history"><I.History /></button>
@@ -1307,7 +1296,7 @@ function ReportsTab({ batches, students, payments }) {
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div className="progress" style={{ width: 60 }}><div className="progress-fill" style={{ width: `${rate}%`, background: rate >= 90 ? "var(--accent)" : rate >= 60 ? "var(--amber)" : "var(--red)" }} /></div>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: rate >= 90 ? "var(--accent)" : rate >= 60 ? "var(--amber)" : "var(--red)" }}>{rate}%</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, width: 30, color: rate >= 90 ? "var(--accent)" : rate >= 60 ? "var(--amber)" : "var(--red)" }}>{rate}%</span>
                       </div>
                     </td>
                   </tr>
@@ -1330,7 +1319,7 @@ function ReportsTab({ batches, students, payments }) {
             return (
               <div key={b.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}><span className="dot" style={{ background: b.color }} />{b.name}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}><span style={{ background: b.color }} className="dot" />{b.name}</div>
                   <div style={{ fontSize: 11, color: "var(--text4)" }}>GST @ {b.gstRate}% · {bPaid.length} students</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -1397,7 +1386,7 @@ function GenerateFeesModal({ batches, students, payments, setPayments, selectedM
     <div className="modal-overlay">
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-box" style={{ maxWidth: 380 }}>
-        <div className="modal-header"><div className="modal-title">⚡ Generate Fees</div></div>
+        <div className="modal-header"><div><div className="modal-title">⚡ Generate Fees</div></div></div>
         <div className="modal-body">
           <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>⚡</div>
@@ -1624,7 +1613,7 @@ function GuruPayPro({ user }) {
         <div className="main">
           <div className="topbar">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <button className={`hamburger-btn ${sidebarOpen ? "is-active" : ""}`} onClick={() => setSidebarOpen(!sidebarOpen)}>
                 <span></span>
                 <span></span>
                 <span></span>
