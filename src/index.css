@@ -290,15 +290,16 @@
 
   /* Responsive */
   @media (max-width: 800px) {
-    :root { --sidebar-w: 58px; }
-    .logo-name, .logo-sub, .nav-label, .nav-btn span, .sidebar-footer .profile-name,
+    :root { --sidebar-w: 130px; }
+    .logo-name, .logo-sub, .nav-btn span, .sidebar-footer .profile-name,
     .sidebar-footer .profile-plan { display: none; }
     .stat-grid { grid-template-columns: 1fr 1fr; }
     .grid-2 { grid-template-columns: 1fr; }
     .grid-3 { grid-template-columns: 1fr 1fr; }
     .content { padding: 14px; }
     .topbar { padding: 0 14px; }
-    .nav-btn { justify-content: center; padding: 10px; }
+    .nav-btn { flex-direction: column; align-items: center; justify-content: center; padding: 10px 8px; gap: 4px; font-size: 11px; }
+    .nav-label { font-size: 11px; }
     .avatar { margin: 0 auto; }
     .profile-card { justify-content: center; }
   }
