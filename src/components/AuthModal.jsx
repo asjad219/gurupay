@@ -24,18 +24,6 @@ const AuthModal = ({ isOpen, onClose, initialView = 'sign_in' }) => {
     }
   };
 
-  const handleSignOut = async () => {
-    setLoading(true);
-    try {
-      await supabase.auth.signOut();
-      onClose();
-    } catch (error) {
-      console.error('Sign out error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="modal-overlay">
       <div className="modal-backdrop" onClick={onClose} />

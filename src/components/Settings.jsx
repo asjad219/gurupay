@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { I } from '../App';
-import { fmtINR, getInitials } from '../utils';
+import { getInitials } from '../utils';
 import AuthModal from './AuthModal';
 
 const Settings = ({ 
