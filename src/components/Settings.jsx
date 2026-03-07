@@ -471,9 +471,6 @@ const Settings = ({
                     <button className="btn btn-primary" onClick={() => { setAuthView('sign_up'); setAuthModalOpen(true); }}>
                       👤 Create New Account
                     </button>
-                    <button className="btn btn-danger" onClick={handleSignOut} disabled={loading}>
-                      🚪 Sign Out
-                    </button>
                     <button className="btn btn-danger" onClick={handleDeleteAccount} disabled={loading}>
                       🗑️ Delete Account
                     </button>
@@ -620,6 +617,17 @@ const Settings = ({
               </div>
             </div>
           )}
+
+          <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+            <button
+              className="btn btn-danger"
+              onClick={handleSignOut}
+              disabled={loading}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              <I.LogOut /> {loading ? 'Signing out...' : 'Sign Out'}
+            </button>
+          </div>
         </div>
       </div>
       {/* authentication modal used by several tabs */}
