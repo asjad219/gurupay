@@ -1,0 +1,1 @@
+function DashboardTab({ batches, students, payments, selectedMonth, setSelectedMonth, toast, openModal }

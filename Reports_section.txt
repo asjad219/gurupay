@@ -1,0 +1,1 @@
+function ReportsTab({ batches, students, payments }
