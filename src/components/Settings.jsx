@@ -1,638 +1,692 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabase';
-import { I } from '../App';
-import { getInitials } from '../utils';
-import AuthModal from './AuthModal';
+import React, { useEffect, useMemo, useState } from 'react';
 
-const Settings = ({ 
-  profile, 
-  setProfile, 
-  features, 
-  setFeatures, 
-  theme, 
-  setTheme, 
-  toast, 
-  user 
-}) => {
-  const [activeTab, setActiveTab] = useState('business');
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState(profile);
-  const [loading, setLoading] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authView, setAuthView] = useState('sign_in');
+const tokens = {
+  bgBase: '#0E0F17',
+  bgSurface: '#16182A',
+  bgElevated: '#1E2038',
+  bgHighlight: '#252847',
+  primary: '#10a34a',
+  primaryGlow: 'rgba(16,163,74,0.20)',
+  accentPurple: '#7C6FFF',
+  accentBlue: '#3B9EFF',
+  accentOrange: '#FF8C42',
+  accentTeal: '#2DD4BF',
+  accentRed: '#FF5E5E',
+  textPrimary: '#F0F1FA',
+  textSecondary: '#8B8FA8',
+  textMuted: '#4B4F6B',
+  border: 'rgba(255,255,255,0.06)',
+  borderActive: 'rgba(16,163,74,0.40)',
+};
+
+const IconBack = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+);
+
+const IconSun = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M22 12h-2M4 12H2M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M19.07 19.07l-1.41-1.41M6.34 6.34L4.93 4.93" />
+  </svg>
+);
+
+const IconMoon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 12.79A9 9 0 1111.2 3 7 7 0 0021 12.79z" />
+  </svg>
+);
+
+const IconChevron = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+);
+
+const IconBuilding = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01" />
+  </svg>
+);
+
+const IconSliders = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 6h16M7 6v8M4 18h16M17 18v-8" />
+  </svg>
+);
+
+const IconPalette = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 3a9 9 0 100 18c1.7 0 2.2-.8 2.2-1.7 0-.8-.5-1.5-.5-2.3 0-1.1.9-2 2-2h1.4A4.9 4.9 0 0022 10 7 7 0 0015 3h-3z" />
+  </svg>
+);
+
+const IconShield = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 3l7 3v6c0 5-3.4 8.8-7 10-3.6-1.2-7-5-7-10V6l7-3z" />
+  </svg>
+);
+
+const IconDatabase = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <ellipse cx="12" cy="5" rx="8" ry="3" />
+    <path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+  </svg>
+);
+
+const IconInfo = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 16v-4M12 8h.01" />
+  </svg>
+);
+
+const IconPencil = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5l4 4L7 21l-4 1 1-4L16.5 3.5z" />
+  </svg>
+);
+
+const IconCheck = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M20 6L9 17l-5-5" />
+  </svg>
+);
+
+const navIcons = {
+  dashboard: (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  ),
+  fee: (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+    </svg>
+  ),
+  batches: (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M7 11h10M7 15h10M9 7h6" />
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+    </svg>
+  ),
+  reports: (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 20V10M12 20V4M20 20v-7" />
+    </svg>
+  ),
+  settings: (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 01-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 012.8-2.8l.1.1a1.7 1.7 0 001.8.3h.1a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5h.1a1.7 1.7 0 001.8-.3l.1-.1a2 2 0 012.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8v.1a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z" />
+    </svg>
+  ),
+};
+
+const Settings = ({ profile: externalProfile, setProfile: setExternalProfile, theme, setTheme }) => {
+  const [activeSection, setActiveSection] = useState('business');
+  const [editMode, setEditMode] = useState(false);
+  const [activeNav, setActiveNav] = useState('settings');
+  const [isMounted, setIsMounted] = useState(false);
+  const [profile, setProfile] = useState({
+    businessName: 'Sri Balaji Coaching Academy',
+    gstin: '29ABCDE1234F1Z5',
+    address: '12, MG Road, Bengaluru – 560001',
+    phone: '9876543210',
+    email: 'balaji@coaching.in',
+    upiId: 'balaji@okaxis',
+  });
 
   useEffect(() => {
-    setProfileForm(profile);
-  }, [profile]);
-
-  const updateFeature = async (key, value) => {
-    const newFeatures = { ...features, [key]: value };
-    setFeatures(newFeatures);
-    try {
-      localStorage.setItem('gp2_feat', JSON.stringify(newFeatures));
-      toast(`${key === 'enableWaiveFee' ? 'Fee Waiver' : key === 'enableGST' ? 'GST' : key} ${value ? 'enabled' : 'disabled'}!`, { icon: "✅" });
-    } catch (error) {
-      toast("Failed to save settings", { icon: "❌" });
+    setIsMounted(true);
+    if (externalProfile) {
+      setProfile((prev) => ({
+        ...prev,
+        businessName: externalProfile.name || prev.businessName,
+        gstin: externalProfile.gstin || prev.gstin,
+        address: externalProfile.address || prev.address,
+        phone: externalProfile.phone || prev.phone,
+        email: externalProfile.email || prev.email,
+        upiId: externalProfile.upiId || prev.upiId,
+      }));
     }
-  };
+  }, [externalProfile]);
 
-  const saveProfile = async () => {
-    setLoading(true);
-    try {
-      setProfile(profileForm);
-      localStorage.setItem('gp2_pr', JSON.stringify(profileForm));
-      setIsEditingProfile(false);
-      toast("Profile saved successfully!", { icon: "✅" });
-    } catch (error) {
-      toast("Failed to save profile", { icon: "❌" });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const sections = useMemo(
+    () => [
+      { id: 'business', label: 'Business Profile', sub: 'Legal and billing identity', color: '#10a34a', icon: <IconBuilding /> },
+      { id: 'features', label: 'Feature Settings', sub: 'Controls and product modules', color: '#3B9EFF', icon: <IconSliders /> },
+      { id: 'appearance', label: 'Appearance', sub: 'Theme and visual behaviour', color: '#2DD4BF', icon: <IconPalette /> },
+      { id: 'auth', label: 'Authentication', sub: 'Security and access controls', color: '#7C6FFF', icon: <IconShield /> },
+      { id: 'data', label: 'Data Management', sub: 'Backups and exports', color: '#FF8C42', icon: <IconDatabase /> },
+      { id: 'about', label: 'About', sub: 'Version and legal information', color: '#8B8FA8', icon: <IconInfo /> },
+    ],
+    []
+  );
 
-  const resetProfile = () => {
-    setProfileForm(profile);
-    setIsEditingProfile(false);
-  };
-
-  const handleSignOut = async () => {
-    setLoading(true);
-    try {
-      await supabase.auth.signOut();
-      toast("Signed out successfully", { icon: "👋" });
-    } catch (error) {
-      toast("Sign out failed", { icon: "❌" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      // Delete user data
-      localStorage.removeItem('gp2_b');
-      localStorage.removeItem('gp2_s');
-      localStorage.removeItem('gp2_p');
-      localStorage.removeItem('gp2_pr');
-      localStorage.removeItem('gp2_th');
-      localStorage.removeItem('gp2_feat');
-      
-      // Delete user from Supabase
-      await supabase.auth.admin.deleteUser(user.id);
-      
-      toast("Account deleted successfully", { icon: "🗑️" });
-      window.location.reload();
-    } catch (error) {
-      toast("Failed to delete account", { icon: "❌" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const exportData = () => {
-    const data = {
-      batches: JSON.parse(localStorage.getItem('gp2_b') || '[]'),
-      students: JSON.parse(localStorage.getItem('gp2_s') || '[]'),
-      payments: JSON.parse(localStorage.getItem('gp2_p') || '[]'),
-      profile: JSON.parse(localStorage.getItem('gp2_pr') || '{}'),
-      theme: localStorage.getItem('gp2_th') || 'light',
-      features: JSON.parse(localStorage.getItem('gp2_feat') || '{}'),
-      exportDate: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `gurupay_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast("Data exported successfully", { icon: "📥" });
-  };
-
-  const importData = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        
-        // Validate data structure
-        if (!data.batches || !data.students || !data.payments) {
-          throw new Error("Invalid backup file format");
-        }
-
-        // Backup current data
-        const backup = {
-          batches: JSON.parse(localStorage.getItem('gp2_b') || '[]'),
-          students: JSON.parse(localStorage.getItem('gp2_s') || '[]'),
-          payments: JSON.parse(localStorage.getItem('gp2_p') || '[]'),
-          profile: JSON.parse(localStorage.getItem('gp2_pr') || '{}'),
-          theme: localStorage.getItem('gp2_th') || 'light',
-          features: JSON.parse(localStorage.getItem('gp2_feat') || '{}'),
-          backupDate: new Date().toISOString()
-        };
-
-        // Import new data
-        localStorage.setItem('gp2_b', JSON.stringify(data.batches));
-        localStorage.setItem('gp2_s', JSON.stringify(data.students));
-        localStorage.setItem('gp2_p', JSON.stringify(data.payments));
-        localStorage.setItem('gp2_pr', JSON.stringify(data.profile));
-        localStorage.setItem('gp2_th', data.theme || 'light');
-        localStorage.setItem('gp2_feat', JSON.stringify(data.features));
-
-        // Create backup file
-        const backupBlob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-        const backupUrl = URL.createObjectURL(backupBlob);
-        const backupLink = document.createElement('a');
-        backupLink.href = backupUrl;
-        backupLink.download = `gurupay_backup_before_import_${new Date().toISOString().slice(0, 10)}.json`;
-        backupLink.click();
-        URL.revokeObjectURL(backupUrl);
-
-        toast("Data imported successfully", { icon: "📤" });
-        window.location.reload();
-      } catch (error) {
-        toast("Failed to import data: Invalid file format", { icon: "❌" });
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const clearAllData = () => {
-    if (!window.confirm("Are you sure you want to clear all data? This action cannot be undone.")) {
-      return;
-    }
-    
-    try {
-      localStorage.removeItem('gp2_b');
-      localStorage.removeItem('gp2_s');
-      localStorage.removeItem('gp2_p');
-      localStorage.removeItem('gp2_pr');
-      localStorage.removeItem('gp2_th');
-      localStorage.removeItem('gp2_feat');
-      
-      toast("All data cleared", { icon: "🧹" });
-      window.location.reload();
-    } catch (error) {
-      toast("Failed to clear data", { icon: "❌" });
-    }
-  };
-
-  const tabs = [
-    { id: 'business', label: '🏢 Business Profile', icon: '🏢' },
-    { id: 'features', label: '⚙️ Feature Settings', icon: '⚙️' },
-    { id: 'appearance', label: '🎨 Appearance', icon: '🎨' },
-    { id: 'auth', label: '🔐 Authentication', icon: '🔐' },
-    { id: 'data', label: '💾 Data Management', icon: '💾' },
-    { id: 'about', label: 'ℹ️ About', icon: 'ℹ️' }
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'fee', label: 'Fee' },
+    { id: 'batches', label: 'Batches' },
+    { id: 'reports', label: 'Reports' },
+    { id: 'settings', label: 'Settings' },
   ];
 
+  const activeIndex = navItems.findIndex((n) => n.id === activeNav);
+
+  const handleSave = () => {
+    setEditMode(false);
+    if (setExternalProfile) {
+      setExternalProfile({
+        name: profile.businessName,
+        gstin: profile.gstin,
+        address: profile.address,
+        phone: profile.phone,
+        email: profile.email,
+        upiId: profile.upiId,
+      });
+    }
+  };
+
+  const isDarkTheme = theme === 'dark';
+
   return (
-    <div className="settings">
-      {/* Settings Header */}
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">⚙️ Settings</div>
-            <div className="card-subtitle">Manage your GuruPay Pro account and preferences</div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '12px' }}>
-                {getInitials(user.email || profile.name)}
-              </div>
-              <div>
-                <div style={{ fontWeight: '600', fontSize: '13px' }}>{user.email || profile.name}</div>
-                <div style={{ fontSize: '11px', color: 'var(--text4)' }}>PRO Account</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
 
-      <div className="grid-2">
-        {/* Sidebar Navigation */}
-        <div className="card" style={{ padding: '0', height: 'fit-content' }}>
-          <div style={{ borderBottom: '1px solid var(--border)', padding: '16px', background: 'var(--bg3)' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text4)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Settings Sections
-            </div>
-          </div>
-          <div style={{ padding: '8px' }}>
-            {tabs.map(tab => (
+        .gp-settings * { box-sizing: border-box; }
+        .gp-settings {
+          min-height: 100vh;
+          background: ${tokens.bgBase};
+          color: ${tokens.textPrimary};
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          display: flex;
+          justify-content: center;
+        }
+        .gp-shell {
+          width: 100%;
+          max-width: 420px;
+          min-height: 100vh;
+          position: relative;
+          padding: 0 16px 90px;
+          background: ${tokens.bgBase};
+          overflow: hidden;
+        }
+        .gp-shell::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(rgba(255,255,255,0.25) 0.55px, transparent 0.55px);
+          background-size: 16px 16px;
+          opacity: 0.03;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .stagger {
+          opacity: 0;
+          transform: translateY(16px);
+          transition: opacity 400ms ease-out, transform 400ms ease-out;
+          position: relative;
+          z-index: 1;
+        }
+        .stagger.show { opacity: 1; transform: translateY(0); }
+        .mesh {
+          background: linear-gradient(135deg, rgba(16,163,74,0.16), rgba(124,111,255,0.14), rgba(59,158,255,0.12));
+          background-size: 200% 200%;
+          animation: meshShift 8s ease infinite;
+        }
+        @keyframes meshShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .row-item { transition: background 180ms ease, transform 180ms ease; }
+        .row-item:hover { background: ${tokens.bgHighlight} !important; transform: translateX(2px); }
+        .left-rail {
+          transform: scaleY(0);
+          transform-origin: top;
+          transition: transform 200ms ease;
+        }
+        .row-item.active .left-rail { transform: scaleY(1); }
+        .save-mount { animation: slideMount 240ms ease forwards; }
+        @keyframes slideMount {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse { animation: pulseIn 320ms ease; }
+        @keyframes pulseIn {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
+
+      <div className="gp-settings">
+        <div className="gp-shell">
+          <header
+            className={`stagger ${isMounted ? 'show' : ''}`}
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 50,
+              paddingTop: 14,
+              paddingBottom: 14,
+              backdropFilter: 'blur(16px)',
+              background: 'rgba(14,15,23,0.85)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <button
-                key={tab.id}
-                className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-ghost'} btn-sm`}
-                style={{ 
-                  width: '100%', 
-                  justifyContent: 'flex-start',
-                  borderRadius: 'var(--radius-sm)',
-                  marginBottom: '4px'
+                style={{
+                  border: `1px solid ${tokens.border}`,
+                  background: tokens.bgElevated,
+                  color: tokens.textSecondary,
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  display: 'grid',
+                  placeItems: 'center',
                 }}
-                onClick={() => setActiveTab(tab.id)}
               >
-                <span style={{ marginRight: '8px' }}>{tab.icon}</span>
-                {tab.label}
+                <IconBack />
               </button>
-            ))}
-          </div>
-        </div>
+              <div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>Settings</div>
+                <div style={{ fontSize: 12, color: tokens.textMuted }}>GuruPay Pro</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setTheme && setTheme(isDarkTheme ? 'light' : 'dark')}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 999,
+                border: `1px solid ${tokens.border}`,
+                color: tokens.textSecondary,
+                background: tokens.bgElevated,
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              {isDarkTheme ? <IconSun /> : <IconMoon />}
+            </button>
+          </header>
 
-        {/* Settings Content */}
-        <div className="card">
-          {activeTab === 'business' && (
-            <div>
-              <div className="card-header">
-                <div>
-                  <div className="card-title">🏢 Business Profile</div>
-                  <div className="card-subtitle">Manage your coaching center information</div>
+          <section
+            className={`stagger mesh ${isMounted ? 'show' : ''}`}
+            style={{
+              transitionDelay: '100ms',
+              marginTop: 12,
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 28,
+              padding: 20,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(20px)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    background: 'linear-gradient(135deg, #10a34a, #7C6FFF)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontWeight: 700,
+                  }}
+                >
+                  S
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {isEditingProfile ? (
-                    <>
-                      <button className="btn btn-secondary btn-sm" onClick={resetProfile} disabled={loading}>
-                        Cancel
-                      </button>
-                      <button className="btn btn-primary btn-sm" onClick={saveProfile} disabled={loading}>
-                        {loading ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    </>
-                  ) : (
-                    <button className="btn btn-primary btn-sm" onClick={() => setIsEditingProfile(true)}>
-                      <I.Edit /> Edit Profile
-                    </button>
-                  )}
+                <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{profile.email}</div>
+                <div style={{ marginTop: 2, fontSize: 11, color: tokens.textSecondary }}>PRO Account</div>
+              </div>
+              <div
+                style={{
+                  borderRadius: 999,
+                  padding: '6px 12px',
+                  border: '1px solid transparent',
+                  background: 'linear-gradient(#16182A, #16182A) padding-box, linear-gradient(135deg, #10a34a, #7C6FFF) border-box',
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              >
+                PRO ✦
+              </div>
+            </div>
+            <div style={{ marginTop: 16, fontSize: 12, color: tokens.textSecondary }}>
+              <span>12 Batches</span>
+              <span style={{ margin: '0 8px' }}>·</span>
+              <span>340 Students</span>
+              <span style={{ margin: '0 8px' }}>·</span>
+              <span>₹2.4L Revenue</span>
+            </div>
+          </section>
+
+          <section className={`stagger ${isMounted ? 'show' : ''}`} style={{ transitionDelay: '200ms', marginTop: 18 }}>
+            <div style={{ fontSize: 10, letterSpacing: 1.2, color: tokens.textMuted, fontWeight: 700, marginBottom: 10 }}>PREFERENCES</div>
+            <div
+              style={{
+                background: tokens.bgSurface,
+                border: `1px solid ${tokens.border}`,
+                borderRadius: 22,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+                overflow: 'hidden',
+              }}
+            >
+              {sections.map((section, idx) => {
+                const active = activeSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    className={`row-item ${active ? 'active' : ''}`}
+                    onClick={() => setActiveSection(section.id)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      background: active ? 'rgba(16,163,74,0.08)' : 'transparent',
+                      border: 'none',
+                      borderBottom: idx === sections.length - 1 ? 'none' : `1px solid ${tokens.border}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      position: 'relative',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div className="left-rail" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: tokens.primary }} />
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 10,
+                        color: section.color,
+                        background: `${section.color}26`,
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {section.icon}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: active ? tokens.primary : tokens.textPrimary }}>{section.label}</div>
+                      <div style={{ fontSize: 11, color: tokens.textSecondary }}>{section.sub}</div>
+                    </div>
+                    <div style={{ color: active ? tokens.primary : tokens.textMuted }}>
+                      <IconChevron />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className={`stagger ${isMounted ? 'show' : ''}`} style={{ transitionDelay: '300ms', marginTop: 18 }}>
+            <div
+              style={{
+                background: tokens.bgSurface,
+                border: `1px solid ${tokens.border}`,
+                borderRadius: 22,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+                padding: 20,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 10,
+                      color: tokens.primary,
+                      background: 'rgba(16,163,74,0.15)',
+                      display: 'grid',
+                      placeItems: 'center',
+                    }}
+                  >
+                    <IconBuilding />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Business Profile</div>
+                    <div style={{ fontSize: 12, color: tokens.textSecondary }}>Coaching center details</div>
+                  </div>
                 </div>
+                <button
+                  onClick={() => (editMode ? handleSave() : setEditMode(true))}
+                  style={{
+                    height: 36,
+                    borderRadius: 999,
+                    padding: '0 12px',
+                    border: editMode ? 'none' : `1px solid ${tokens.border}`,
+                    background: editMode ? 'linear-gradient(135deg,#10a34a,#059669)' : 'transparent',
+                    color: editMode ? '#fff' : tokens.textSecondary,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    fontWeight: 600,
+                    transition: 'all .2s ease',
+                  }}
+                >
+                  {editMode ? <IconCheck /> : <IconPencil />}
+                  {editMode ? 'Save' : 'Edit'}
+                </button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                {[
-                  { key: 'name', label: 'Business Name', type: 'text', required: true },
-                  { key: 'gstin', label: 'GSTIN (optional)', type: 'text' },
-                  { key: 'address', label: 'Address', type: 'textarea' },
-                  { key: 'phone', label: 'Phone Number', type: 'tel' },
-                  { key: 'email', label: 'Email Address', type: 'email' },
-                  { key: 'upiId', label: 'UPI ID', type: 'text' }
-                ].map(field => (
-                  <div key={field.key} className="input-group">
-                    <label className="input-label">
-                      {field.label} {field.required && <span style={{ color: 'var(--red)' }}>*</span>}
-                    </label>
-                    {field.type === 'textarea' ? (
-                      <textarea
-                        className="input"
-                        value={profileForm[field.key] || ''}
-                        onChange={(e) => setProfileForm({ ...profileForm, [field.key]: e.target.value })}
-                        disabled={!isEditingProfile || loading}
-                        placeholder={field.key === 'address' ? '123 Main Street, City, State - PIN' : ''}
-                      />
-                    ) : (
-                      <input
-                        className="input"
-                        type={field.type}
-                        value={profileForm[field.key] || ''}
-                        onChange={(e) => setProfileForm({ ...profileForm, [field.key]: e.target.value })}
-                        disabled={!isEditingProfile || loading}
-                        placeholder={field.key === 'phone' ? '+91 9876543210' : field.key === 'email' ? 'contact@business.com' : ''}
-                      />
-                    )}
-                  </div>
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <Field
+                  label="Business Name *"
+                  value={profile.businessName}
+                  disabled={!editMode}
+                  onChange={(v) => setProfile((p) => ({ ...p, businessName: v }))}
+                />
+                <Field
+                  label="GSTIN"
+                  value={profile.gstin}
+                  disabled={!editMode}
+                  mono
+                  onChange={(v) => setProfile((p) => ({ ...p, gstin: v }))}
+                />
+                <Field
+                  label="Address"
+                  value={profile.address}
+                  disabled={!editMode}
+                  textarea
+                  full
+                  onChange={(v) => setProfile((p) => ({ ...p, address: v }))}
+                />
+                <Field
+                  label="Phone"
+                  value={profile.phone}
+                  disabled={!editMode}
+                  onChange={(v) => setProfile((p) => ({ ...p, phone: v }))}
+                />
+                <Field
+                  label="Email"
+                  value={profile.email}
+                  disabled={!editMode}
+                  onChange={(v) => setProfile((p) => ({ ...p, email: v }))}
+                />
+                <Field
+                  label="UPI ID"
+                  value={profile.upiId}
+                  disabled={!editMode}
+                  mono
+                  full
+                  onChange={(v) => setProfile((p) => ({ ...p, upiId: v }))}
+                />
               </div>
 
-              {/* Profile Preview */}
-              {isEditingProfile && (
-                <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text4)', marginBottom: '8px' }}>Preview:</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', background: 'var(--bg2)', borderRadius: 'var(--radius-sm)' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700' }}>
-                      {getInitials(profileForm.name)}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: '700', fontSize: '14px' }}>{profileForm.name || 'Your Business'}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text4)' }}>{profileForm.address || 'Your address'}</div>
-                    </div>
-                  </div>
-                </div>
+              {editMode && (
+                <button
+                  className="save-mount pulse"
+                  onClick={handleSave}
+                  style={{
+                    marginTop: 14,
+                    width: '100%',
+                    height: 52,
+                    borderRadius: 16,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #10a34a, #059669)',
+                    boxShadow: '0 8px 32px rgba(16,163,74,0.35)',
+                    color: '#fff',
+                    fontFamily: 'Syne, sans-serif',
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  Save Changes
+                </button>
               )}
             </div>
-          )}
+          </section>
 
-          {activeTab === 'features' && (
-            <div>
-              <div className="card-header">
-                <div>
-                  <div className="card-title">⚙️ Feature Settings</div>
-                  <div className="card-subtitle">Control which features are available in your dashboard</div>
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                {[
-                  { key: 'showStudents', label: '👥 Student Management', desc: 'Enable student list and batch management' },
-                  { key: 'showPayments', label: '💳 Fee Tracking', desc: 'Enable fee tracking and payment management' },
-                  { key: 'showReports', label: '📊 Analytics & Reports', desc: 'Enable revenue reports and analytics' },
-                  { key: 'enableNotifications', label: '🔔 Notifications', desc: 'Enable desktop and in-app notifications' },
-                  { key: 'enableWaiveFee', label: '🔵 Fee Waiver', desc: 'Allow fee waivers for students' },
-                  { key: 'enableGST', label: '💰 GST Calculation', desc: 'Enable GST calculation and reporting' },
-                  { key: 'enableDarkMode', label: '🌙 Dark Mode', desc: 'Allow switching to dark theme' },
-                  { key: 'enableBulkActions', label: '📦 Bulk Operations', desc: 'Enable bulk student and payment operations' }
-                ].map(feature => (
-                  <div key={feature.key} className="settings-item">
-                    <div>
-                      <div className="settings-item-label">{feature.label}</div>
-                      <div className="settings-item-desc">{feature.desc}</div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="toggle-input"
-                      checked={features[feature.key] || false}
-                      onChange={(e) => updateFeature(feature.key, e.target.checked)}
-                    />
+          <nav
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              width: '100%',
+              maxWidth: 420,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(14,15,23,0.95)',
+              backdropFilter: 'blur(20px)',
+              borderTop: `1px solid ${tokens.border}`,
+              paddingTop: 10,
+              paddingBottom: 20,
+              display: 'flex',
+              justifyContent: 'space-evenly',
+              zIndex: 60,
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: 12,
+                left: `calc(${(activeIndex * 100) / navItems.length}% + ${(100 / navItems.length) / 2}%)`,
+                width: 40,
+                height: 20,
+                borderRadius: 999,
+                background: tokens.primaryGlow,
+                transform: 'translateX(-50%)',
+                transition: 'left .3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}
+            />
+            {navItems.map((item) => {
+              const active = activeNav === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveNav(item.id)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: active ? tokens.primary : tokens.textMuted,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    minWidth: 56,
+                    position: 'relative',
+                  }}
+                >
+                  <div style={{ position: 'relative', zIndex: 2 }}>
+                    {navIcons[item.id]}
+                    {item.id === 'fee' && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: -7,
+                          right: -10,
+                          width: 16,
+                          height: 16,
+                          borderRadius: 999,
+                          background: tokens.accentRed,
+                          color: '#fff',
+                          fontSize: 9,
+                          fontWeight: 700,
+                          display: 'grid',
+                          placeItems: 'center',
+                        }}
+                      >
+                        3
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'appearance' && (
-            <div>
-              <div className="card-header">
-                <div>
-                  <div className="card-title">🎨 Appearance</div>
-                  <div className="card-subtitle">Customize your dashboard theme and display options</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="settings-item">
-                  <div>
-                    <div className="settings-item-label">Theme</div>
-                    <div className="settings-item-desc">Switch between light and dark themes</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text4)' }}>Light</span>
-                    <input
-                      type="checkbox"
-                      className="toggle-input"
-                      checked={theme === 'dark'}
-                      onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
-                    />
-                    <span style={{ fontSize: '12px', color: 'var(--text4)' }}>Dark</span>
-                  </div>
-                </div>
-
-                <div className="settings-item">
-                  <div>
-                    <div className="settings-item-label">Font Size</div>
-                    <div className="settings-item-desc">Adjust text size for better readability</div>
-                  </div>
-                  <select className="month-sel" style={{ width: '120px' }}>
-                    <option>Normal</option>
-                    <option>Large</option>
-                    <option>Extra Large</option>
-                  </select>
-                </div>
-
-                <div className="settings-item">
-                  <div>
-                    <div className="settings-item-label">Animations</div>
-                    <div className="settings-item-desc">Enable smooth transitions and animations</div>
-                  </div>
-                  <input type="checkbox" className="toggle-input" defaultChecked />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'auth' && (
-            <div>
-              <div className="card-header">
-                <div>
-                  <div className="card-title">🔐 Authentication</div>
-                  <div className="card-subtitle">Manage your account security and login options</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <div>
-                      <div style={{ fontWeight: '700', fontSize: '14px' }}>Account Information</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text4)' }}>Your current login details</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => { setAuthView('update_password'); setAuthModalOpen(true); }}>
-                        <I.Edit /> Change Password
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px' }}>
-                    <div>
-                      <div style={{ color: 'var(--text4)', marginBottom: '4px' }}>Email</div>
-                      <div style={{ fontWeight: '600' }}>{user.email}</div>
-                    </div>
-                    <div>
-                      <div style={{ color: 'var(--text4)', marginBottom: '4px' }}>Provider</div>
-                      <div style={{ fontWeight: '600' }}>Google</div>
-                    </div>
-                    <div>
-                      <div style={{ color: 'var(--text4)', marginBottom: '4px' }}>Account Type</div>
-                      <div style={{ fontWeight: '600', color: 'var(--accent)' }}>PRO</div>
-                    </div>
-                    <div>
-                      <div style={{ color: 'var(--text4)', marginBottom: '4px' }}>Member Since</div>
-                      <div style={{ fontWeight: '600' }}>{new Date(user.created_at).toLocaleDateString('en-IN')}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <div>
-                      <div style={{ fontWeight: '700', fontSize: '14px' }}>Security Actions</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text4)' }}>Manage your account security</div>
-                    </div>
-                  </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <button className="btn btn-secondary" onClick={() => { setAuthView('sign_in'); setAuthModalOpen(true); }}>
-                      🔐 Sign In to Another Account
-                    </button>
-                    <button className="btn btn-primary" onClick={() => { setAuthView('sign_up'); setAuthModalOpen(true); }}>
-                      👤 Create New Account
-                    </button>
-                    <button className="btn btn-danger" onClick={handleDeleteAccount} disabled={loading}>
-                      🗑️ Delete Account
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'data' && (
-            <div>
-              <div className="card-header">
-                <div>
-                  <div className="card-title">💾 Data Management</div>
-                  <div className="card-subtitle">Backup, restore, and manage your data</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>Export Data</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text4)', marginBottom: '16px' }}>
-                    Download a backup of all your data including students, payments, and settings.
-                  </div>
-                  <button className="btn btn-primary" onClick={exportData}>
-                    📥 Export All Data
-                  </button>
-                </div>
-
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>Import Data</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text4)', marginBottom: '16px' }}>
-                    Restore data from a previously exported backup file.
-                  </div>
-                  <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
-                    📤 Import Data
-                    <input type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
-                  </label>
-                </div>
-
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>Clear All Data</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text4)', marginBottom: '16px' }}>
-                    Remove all data from your local storage. This action cannot be undone.
-                  </div>
-                  <button className="btn btn-danger" onClick={clearAllData}>
-                    🧹 Clear All Data
-                  </button>
-                </div>
-
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>Reset to Defaults</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text4)', marginBottom: '16px' }}>
-                    Reset all settings to their default values while keeping your data.
-                  </div>
-                  <button className="btn btn-secondary" onClick={() => {
-                    localStorage.setItem('gp2_th', 'light');
-                    localStorage.setItem('gp2_feat', JSON.stringify({
-                      showStudents: true, showAttendance: true, showPayments: true, 
-                      showReports: true, enableNotifications: true, enableDarkMode: true, 
-                      enableWaiveFee: true, enableGST: true
-                    }));
-                    toast("Settings reset to defaults", { icon: "🔄" });
-                    window.location.reload();
-                  }}>
-                    🔄 Reset Settings
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'about' && (
-            <div>
-              <div className="card-header">
-                <div>
-                  <div className="card-title">ℹ️ About GuruPay Pro</div>
-                  <div className="card-subtitle">Learn more about your fee management solution</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>Application Info</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text4)', lineHeight: '1.6' }}>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>Version:</strong> 2.1.0
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>Build:</strong> 2026.03.05
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>License:</strong> Professional Edition
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>Storage:</strong> Local Storage (Client-side)
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>Features</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text4)', lineHeight: '1.6' }}>
-                    <ul style={{ margin: 0, paddingLeft: '16px' }}>
-                      <li>Student & Batch Management</li>
-                      <li>Fee Tracking & Payment History</li>
-                      <li>GST Calculation & Reporting</li>
-                      <li>WhatsApp Integration</li>
-                      <li>Export & Import</li>
-                      <li>Dark/Light Theme</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>Support</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text4)', lineHeight: '1.6' }}>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>Email:</strong> support@gurupay.com
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>Website:</strong> gurupay.com
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>Documentation:</strong> docs.gurupay.com
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card" style={{ padding: '16px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>Legal</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text4)', lineHeight: '1.6' }}>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>Privacy:</strong> Your data never leaves your device
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>Terms:</strong> By using this app, you agree to our terms
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>Security:</strong> All data is encrypted in your browser
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-            <button
-              className="btn btn-danger"
-              onClick={handleSignOut}
-              disabled={loading}
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              <I.LogOut /> {loading ? 'Signing out...' : 'Sign Out'}
-            </button>
-          </div>
+                  <span style={{ fontSize: 10, color: active ? tokens.primary : tokens.textMuted, fontWeight: active ? 700 : 500 }}>{item.label}</span>
+                  {active && <span style={{ width: 4, height: 4, borderRadius: 999, background: tokens.primary }} />}
+                </button>
+              );
+            })}
+          </nav>
         </div>
       </div>
-      {/* authentication modal used by several tabs */}
-      <AuthModal isOpen={authModalOpen} initialView={authView} onClose={() => setAuthModalOpen(false)} />
-    </div>
+    </>
+  );
+};
+
+const Field = ({ label, value, onChange, disabled, full, textarea, mono }) => {
+  return (
+    <label style={{ gridColumn: full ? '1 / -1' : 'auto', display: 'block' }}>
+      <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: tokens.textSecondary, marginBottom: 6, fontWeight: 600 }}>{label}</div>
+      {textarea ? (
+        <textarea
+          rows={2}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          style={{
+            width: '100%',
+            resize: 'none',
+            background: tokens.bgElevated,
+            border: `1.5px solid ${disabled ? tokens.border : tokens.borderActive}`,
+            borderRadius: 16,
+            padding: '12px 14px',
+            fontSize: 14,
+            color: tokens.textPrimary,
+            outline: 'none',
+            boxShadow: disabled ? 'none' : `0 0 0 3px ${tokens.primaryGlow}`,
+            opacity: disabled ? 0.6 : 1,
+            cursor: disabled ? 'not-allowed' : 'text',
+            fontFamily: 'Plus Jakarta Sans, sans-serif',
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+          }}
+        />
+      ) : (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          style={{
+            width: '100%',
+            background: tokens.bgElevated,
+            border: `1.5px solid ${disabled ? tokens.border : tokens.borderActive}`,
+            borderRadius: 16,
+            padding: '12px 14px',
+            fontSize: 14,
+            color: tokens.textPrimary,
+            outline: 'none',
+            boxShadow: disabled ? 'none' : `0 0 0 3px ${tokens.primaryGlow}`,
+            opacity: disabled ? 0.6 : 1,
+            cursor: disabled ? 'not-allowed' : 'text',
+            fontFamily: mono ? 'JetBrains Mono, monospace' : 'Plus Jakarta Sans, sans-serif',
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+          }}
+        />
+      )}
+    </label>
   );
 };
 
