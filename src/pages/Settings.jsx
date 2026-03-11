@@ -251,6 +251,23 @@ function AuthPanel({ D, accentColor }) {
           ))}
         </div>
       </div>
+
+      {/* Security Actions */}
+      <div>
+        <p style={{ fontSize:10,fontWeight:700,letterSpacing:1.2,textTransform:"uppercase",color:D.textMuted,marginBottom:10 }}>Security Actions</p>
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+          <button
+            style={{ height:42,borderRadius:10,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,
+              border:`1.5px solid rgba(255,94,94,0.35)`,background:"rgba(255,94,94,0.08)",color:"#FF5E5E" }}>
+            Delete Account
+          </button>
+          <button
+            style={{ height:42,borderRadius:10,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,
+              border:`1.5px solid rgba(255,94,94,0.35)`,background:"rgba(255,94,94,0.08)",color:"#FF5E5E" }}>
+            Sign Out
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -303,9 +320,6 @@ function AboutPanel({ D }) {
           <p style={{ fontSize:13,color:D.textPri,fontWeight:600,textAlign:"right" }}>{v}</p>
         </div>
       ))}
-      <div style={{ marginTop:16,padding:14,borderRadius:12,textAlign:"center",background:"rgba(255,94,94,0.08)",border:"1px solid rgba(255,94,94,0.2)",cursor:"pointer" }}>
-        <p style={{ fontSize:14,fontWeight:700,color:"#FF5E5E" }}>Sign Out</p>
-      </div>
     </div>
   );
 }
@@ -374,7 +388,7 @@ function BusinessPanel({ D, accentColor }) {
 }
 
 // ── MAIN ─────────────────────────────────────────────────────────────
-export default function GuruPaySettings() {
+export default function GuruPaySettings({ embedded = false }) {
   const [dark, setDark]       = useState(true);
   const [sec, setSec]         = useState("business");
   const [nav, setNav]         = useState("settings");
@@ -415,7 +429,7 @@ export default function GuruPaySettings() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-        html,body{background:${D.base};height:100%;font-size:${baseFontSize}px;}
+        ${embedded ? "" : `html,body{background:${D.base};height:100%;font-size:${baseFontSize}px;}`}
         ::-webkit-scrollbar{width:0;}
         input,textarea,button{font-family:'Plus Jakarta Sans',sans-serif;}
         .sec-row{cursor:pointer;transition:background 0.15s;}
@@ -430,13 +444,13 @@ export default function GuruPaySettings() {
       `}</style>
 
       {/* Root: full height flex column */}
-      <div style={{ display:"flex",flexDirection:"column",height:"100vh",
+      <div style={{ display:"flex",flexDirection:"column",height:embedded?"100%":"100vh",
         background:D.base,fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:baseFontSize,
-        maxWidth:480,margin:"0 auto",position:"relative",
-        boxShadow:"0 0 60px rgba(0,0,0,0.5)" }}>
+        maxWidth:embedded?"100%":480,margin:embedded?0:"0 auto",position:"relative",
+        boxShadow:embedded?"none":"0 0 60px rgba(0,0,0,0.5)" }}>
 
         {/* ── HEADER ── single bar, no duplicate */}
-        <div style={{ flexShrink:0,zIndex:50,
+        {!embedded && <div style={{ flexShrink:0,zIndex:50,
           background:dark?"rgba(14,15,23,0.95)":"rgba(240,242,248,0.95)",
           backdropFilter:"blur(20px)",
           borderBottom:`1px solid ${D.border}` }}>
@@ -459,10 +473,10 @@ export default function GuruPaySettings() {
               <Icon d={dark?ICONS.sun:ICONS.moon} color={D.textSec} size={16}/>
             </button>
           </div>
-        </div>
+        </div>}
 
         {/* ── SCROLLABLE BODY ── */}
-        <div style={{ flex:1,overflowY:"auto",padding:"14px 14px 0" }}>
+        <div style={{ flex:1,overflowY:"auto",padding:embedded?"14px":"14px 14px 0" }}>
 
           {/* Account hero */}
           <div className="a1" style={{ marginBottom:14,
@@ -561,7 +575,7 @@ export default function GuruPaySettings() {
         </div>{/* end scroll body */}
 
         {/* ── BOTTOM NAV ── */}
-        <div style={{ flexShrink:0,
+        {!embedded && <div style={{ flexShrink:0,
           background:dark?"rgba(14,15,23,0.97)":"rgba(255,255,255,0.97)",
           backdropFilter:"blur(20px)",
           borderTop:`1px solid ${D.border}`,
@@ -595,7 +609,7 @@ export default function GuruPaySettings() {
               </button>
             );
           })}
-        </div>
+        </div>}
 
       </div>
     </>

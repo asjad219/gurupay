@@ -168,7 +168,7 @@ const CSS = `
   /* Bottom Navigation Bar */
   .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: var(--bg2);
     border-top: 1px solid var(--border); box-shadow: 0 -2px 6px rgba(0,0,0,.06); z-index: 999;
-    display: flex; align-items: stretch; justify-content: space-around; padding: 0; }
+    align-items: stretch; justify-content: space-around; padding: 0; }
   .bottom-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 3px; border: none; background: none; color: var(--text3); cursor: pointer;
     font-family: var(--font-body); font-size: 10px; font-weight: 600; transition: var(--transition);
@@ -1669,7 +1669,7 @@ function GuruPayPro({ user }) {
             {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} />}
             {tab === "batches" && <BatchesTab batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} selectedBatch={selectedBatch} setSelectedBatch={setSelectedBatch} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
-            {tab === "settings" && <GuruPaySettings profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} toast={toast} user={user} />}
+            {tab === "settings" && <GuruPaySettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} toast={toast} user={user} />}
           </div>
 
           {/* Bottom Navigation for Mobile */}
