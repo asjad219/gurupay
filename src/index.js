@@ -14,12 +14,19 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker for PWA
+// Disable service worker caching for reliable fresh deploys.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then(() => console.log("Service Worker registered"))
-      .catch((err) => console.log("Service Worker failed:", err));
+  window.addEventListener("load", async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+
+      if (window.caches) {
+        const cacheKeys = await window.caches.keys();
+        await Promise.all(cacheKeys.map((cacheKey) => window.caches.delete(cacheKey)));
+      }
+    } catch (error) {
+      console.warn("Service worker cleanup failed:", error);
+    }
   });
 }

@@ -4,28 +4,112 @@ import { supabase } from './supabase'
 import Login from './Login'
 import GuruPaySettings from './pages/Settings';
 import BatchDetails from './components/BatchDetails';
+
+const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
+const VERSION_STORAGE_KEY = "gp_app_build_id";
+
+async function fetchBuildVersion() {
+  const response = await fetch(`/version.json?t=${Date.now()}`, {
+    cache: "no-store",
+    headers: {
+      "cache-control": "no-cache"
+    }
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return response.json();
+}
+
+async function clearRuntimeCaches() {
+  if (!("caches" in window)) return;
+
+  const cacheKeys = await window.caches.keys();
+  await Promise.all(cacheKeys.map((cacheKey) => window.caches.delete(cacheKey)));
+}
+
 // Wrap your whole app with this auth check:
 export default function Root() {
 const [user, setUser] = useState(null)
 const [loading, setLoading] = useState(true)
 const [error, setError] = useState(null)
 useEffect(() => {
+  let disposed = false
+
+  const checkForNewDeployment = async () => {
+    try {
+      const versionInfo = await fetchBuildVersion()
+      const nextBuildId = versionInfo?.buildId
+      if (!nextBuildId || disposed) return
+
+      const knownBuildId = localStorage.getItem(VERSION_STORAGE_KEY)
+
+      if (!knownBuildId) {
+        localStorage.setItem(VERSION_STORAGE_KEY, nextBuildId)
+        return
+      }
+
+      if (knownBuildId !== nextBuildId) {
+        localStorage.setItem(VERSION_STORAGE_KEY, nextBuildId)
+        await clearRuntimeCaches()
+        window.location.reload()
+      }
+    } catch {
+      // Silent fail: deployment check should never block app usage.
+    }
+  }
+
+  checkForNewDeployment()
+  const versionTimer = setInterval(checkForNewDeployment, VERSION_CHECK_INTERVAL_MS)
+  const onWindowFocus = () => checkForNewDeployment()
+  const onVisibilityChange = () => {
+    if (document.visibilityState === "visible") {
+      checkForNewDeployment()
+    }
+  }
+
+  window.addEventListener("focus", onWindowFocus)
+  document.addEventListener("visibilitychange", onVisibilityChange)
+
   (async () => {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError) throw sessionError
+      if (disposed) return
       setUser(session?.user ?? null)
     } catch (e) {
       console.error('Auth error:', e)
+      if (disposed) return
       setError(e.message)
     } finally {
+      if (disposed) return
       setLoading(false)
     }
   })()
   const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    (_event, session) => setUser(session?.user ?? null)
+    async (_event, session) => {
+      if (disposed) return
+
+      if (!session) {
+        const { data: { session: latestSession } } = await supabase.auth.getSession()
+        if (disposed) return
+        setUser(latestSession?.user ?? null)
+        return
+      }
+
+      setUser(session.user ?? null)
+    }
   )
-  return () => subscription.unsubscribe()
+
+  return () => {
+    disposed = true
+    clearInterval(versionTimer)
+    window.removeEventListener("focus", onWindowFocus)
+    document.removeEventListener("visibilitychange", onVisibilityChange)
+    subscription.unsubscribe()
+  }
 }, [])
 if (error) return <div style={{ padding: '2rem', color: 'red', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❌ Error: {error}</div>
 if (loading) return <div style={{ padding: '2rem', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⏳ Loading...</div>
