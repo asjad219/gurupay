@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const Icon = ({ d, color = "currentColor", size = 18, stroke = 1.8 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -140,12 +140,15 @@ function AppearancePanel({ dark, setDark, D, theme, setTheme, fontSize, setFontS
 
 function AuthPanel({ D, accentColor }) {
   const [pin, setPin]       = useState(["","","","",""]);
+  const [savedPin, setSavedPin] = useState(["","","","",""]);
   const [pinStatus, setPinStatus] = useState(""); // "saved" | "reset" | ""
   const [bio, setBio]       = useState(true);
   const [lock, setLock]     = useState("5 min");
+  const pinRefs = useRef([]);
 
   const handleSavePin = () => {
     if (pin.every(v => v !== "")) {
+      setSavedPin([...pin]);
       setPinStatus("saved");
       setTimeout(() => setPinStatus(""), 2500);
     }
@@ -153,8 +156,10 @@ function AuthPanel({ D, accentColor }) {
 
   const handleResetPin = () => {
     setPin(["","","","",""]);
+    setSavedPin(["","","","",""]);
     setPinStatus("reset");
     setTimeout(() => setPinStatus(""), 2500);
+    pinRefs.current[0]?.focus();
   };
 
   const pinFilled = pin.every(v => v !== "");
@@ -166,11 +171,21 @@ function AuthPanel({ D, accentColor }) {
         <p style={{ fontSize:10,fontWeight:700,letterSpacing:1.2,textTransform:"uppercase",color:D.textMuted,marginBottom:10 }}>App PIN</p>
         <div style={{ display:"flex",gap:8,marginBottom:12 }}>
           {pin.map((v,i)=>(
-            <input key={i} type="password" maxLength={1} value={v}
+            <input key={i} type="password" inputMode="numeric" maxLength={1} value={v}
+              ref={el => pinRefs.current[i] = el}
               onChange={e=>{
+                const val = e.target.value.slice(-1);
                 const p=[...pin];
-                p[i]=e.target.value.slice(-1);
+                p[i]=val;
                 setPin(p);
+                if (val && i < 4) {
+                  pinRefs.current[i+1]?.focus();
+                }
+              }}
+              onKeyDown={e=>{
+                if (e.key==="Backspace" && !pin[i] && i > 0) {
+                  pinRefs.current[i-1]?.focus();
+                }
               }}
               style={{ width:48,height:52,textAlign:"center",fontSize:20,
                 background:D.elevated,
@@ -275,7 +290,6 @@ function AboutPanel({ D }) {
   // ← "Developer" row removed
   const rows=[
     ["App Version","2.4.1 (Build 241)"],
-    ["Last Updated","March 2025"],
     ["Support","support@gurupay.in"],
     ["Privacy Policy","gurupay.in/privacy"],
     ["Terms","gurupay.in/terms"],
@@ -428,13 +442,6 @@ export default function GuruPaySettings() {
           borderBottom:`1px solid ${D.border}` }}>
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px" }}>
             <div style={{ display:"flex",alignItems:"center",gap:10 }}>
-              {/* Logo */}
-              <div style={{ width:36,height:36,borderRadius:10,flexShrink:0,
-                background:`linear-gradient(135deg,${accentColor},${accentColor}cc)`,
-                display:"flex",alignItems:"center",justifyContent:"center",
-                boxShadow:`0 3px 12px ${accentColor}66` }}>
-                <span style={{ fontFamily:"'Outfit',sans-serif",fontSize:17,fontWeight:900,color:"#fff" }}>G</span>
-              </div>
               <div>
                 {/* ← Fixed: use color instead of gradient text-fill so it always renders */}
                 <h1 style={{ fontFamily:"'Outfit',sans-serif",fontSize:22,fontWeight:900,
