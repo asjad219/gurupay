@@ -119,7 +119,7 @@ const BatchDetails = ({
     <div className="batch-details">
       {/* Batch Header */}
       <div className="card" style={{ marginBottom: '20px' }}>
-        <div className="card-header" style={{ alignItems: 'flex-start' }}>
+        <div className="card-header batch-detail-top-header" style={{ alignItems: 'flex-start' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <div 
@@ -140,13 +140,13 @@ const BatchDetails = ({
                 </p>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text4)' }}>
+            <div className="batch-detail-meta" style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text4)' }}>
               <span>Capacity: {batch.capacity} students</span>
               <span>Fee: {fmtINR(batch.fee)}{batch.gstRate > 0 ? ` + ${batch.gstRate}% GST` : ''}</span>
               <span>GST Rate: {batch.gstRate}%</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="batch-detail-actions" style={{ display: 'flex', gap: '8px' }}>
             <button className="btn btn-secondary btn-sm" onClick={() => onEditBatch(batch)}>
               <I.Edit /> Edit Batch
             </button>
@@ -181,12 +181,12 @@ const BatchDetails = ({
 
       {/* Student Management Toolbar */}
       <div className="card" style={{ marginBottom: '20px' }}>
-        <div className="card-header">
+        <div className="card-header batch-student-header">
           <div>
             <div className="card-title">Student Management</div>
             <div className="card-subtitle">Manage students in {batch.name}</div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div className="batch-student-controls" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <select 
               className="month-sel" 
               value={selectedMonth} 
@@ -217,7 +217,7 @@ const BatchDetails = ({
         </div>
 
         {/* Search and Filter */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <div className="batch-student-filters" style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <div className="search-wrap" style={{ flex: '1 1 300px' }}>
             <I.Search />
             <input 
@@ -273,7 +273,6 @@ const BatchDetails = ({
                 ) : (
                   batchStudents.map(student => {
                     const payment = getPaymentStatus(student.id);
-                    const amount = payment ? payment.amount : batch.fee - (student.discount || 0) + Math.round((batch.fee - (student.discount || 0)) * batch.gstRate / 100);
                     
                     return (
                       <tr key={student.id}>
