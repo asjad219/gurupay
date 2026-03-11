@@ -140,14 +140,12 @@ function AppearancePanel({ dark, setDark, D, theme, setTheme, fontSize, setFontS
 
 function AuthPanel({ D, accentColor }) {
   const [pin, setPin]       = useState(["","","","",""]);
-  const [savedPin, setSavedPin] = useState(["","","","",""]);
   const [pinStatus, setPinStatus] = useState(""); // "saved" | "reset" | ""
   const [bio, setBio]       = useState(true);
   const [lock, setLock]     = useState("5 min");
 
   const handleSavePin = () => {
     if (pin.every(v => v !== "")) {
-      setSavedPin([...pin]);
       setPinStatus("saved");
       setTimeout(() => setPinStatus(""), 2500);
     }
@@ -155,7 +153,6 @@ function AuthPanel({ D, accentColor }) {
 
   const handleResetPin = () => {
     setPin(["","","","",""]);
-    setSavedPin(["","","","",""]);
     setPinStatus("reset");
     setTimeout(() => setPinStatus(""), 2500);
   };

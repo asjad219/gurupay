@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from './supabase'
 import Login from './Login'
 import GuruPaySettings from './pages/Settings';
+import BatchDetails from './components/BatchDetails';
 // Wrap your whole app with this auth check:
 export default function Root() {
 const [user, setUser] = useState(null)
@@ -1668,7 +1669,7 @@ function GuruPayPro({ user }) {
             {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} />}
             {tab === "batches" && <BatchesTab batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} selectedBatch={selectedBatch} setSelectedBatch={setSelectedBatch} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
-            {tab === "settings" && <Settings profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} toast={toast} user={user} />}
+            {tab === "settings" && <GuruPaySettings profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} toast={toast} user={user} />}
           </div>
 
           {/* Bottom Navigation for Mobile */}
