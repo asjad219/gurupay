@@ -1050,7 +1050,7 @@ function DashboardTab({ batches, students, payments, selectedMonth, setSelectedM
 }
 
 // ─── FEE TRACKING TAB ─────────────────────────────────────────────────────────
-function FeesTab({ batches, students, payments, setPayments, selectedMonth, setSelectedMonth, toast, openModal, profile }) {
+function FeesTab({ batches, students, payments, setPayments, selectedMonth, setSelectedMonth, toast, openModal, profile, deleteStudent }) {
   const [filterBatch, setFilterBatch] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
@@ -1626,6 +1626,27 @@ function GuruPayPro({ user }) {
     toast(isEdit ? "Student updated!" : "Student added!", { icon: "✅" });
   };
 
+  const deleteStudent = async (student) => {
+    const prev = { students: [...students], payments: [...payments] };
+    const ns = students.filter((s) => s.id !== student.id);
+    const np = payments.filter((p) => p.studentId !== student.id);
+
+    setStudents(ns);
+    setPayments(np);
+    await dbSet(KEYS.students, ns);
+    await dbSet(KEYS.payments, np);
+
+    toast("Student removed", {
+      icon: "🗑️",
+      onUndo: async () => {
+        setStudents(prev.students);
+        setPayments(prev.payments);
+        await dbSet(KEYS.students, prev.students);
+        await dbSet(KEYS.payments, prev.payments);
+      },
+    });
+  };
+
   // Mark paid handler
   const handleMarkPaid = async (payment, { paidOn, lateFee, notes, amount }) => {
     const prev = [...payments];
@@ -1750,7 +1771,7 @@ function GuruPayPro({ user }) {
 
           <div className="content">
             {tab === "dashboard" && <DashboardTab {...commonProps} />}
-            {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} />}
+            {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} deleteStudent={deleteStudent} />}
             {tab === "batches" && <BatchesTab batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} selectedBatch={selectedBatch} setSelectedBatch={setSelectedBatch} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
             {tab === "settings" && <GuruPaySettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} toast={toast} user={user} />}
