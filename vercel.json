@@ -4,7 +4,7 @@
   "outputDirectory": "build",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!static/|favicon.ico|manifest.json|robots.txt|logo192.png|logo512.png|version.json|asset-manifest.json|sw.js|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],
