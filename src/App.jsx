@@ -783,7 +783,7 @@ function WaModal({ student, batch, month, whatsappConfig, onSaveWhatsAppConfig, 
                 style={{ minHeight: 120 }}
                 placeholder={DEFAULT_REMINDER_TEMPLATE}
               />
-              <div className="input-hint">Use: {{studentName}}, {{batchName}}, {{month}}, {{base}}, {{gst}}, {{gstRate}}, {{total}}, {{amount}}, {{gstLine}}</div>
+              <div className="input-hint">Use: {'{{studentName}}'}, {'{{batchName}}'}, {'{{month}}'}, {'{{base}}'}, {'{{gst}}'}, {'{{gstRate}}'}, {'{{total}}'}, {'{{amount}}'}, {'{{gstLine}}'}</div>
             </div>
           )}
 
