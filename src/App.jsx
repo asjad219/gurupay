@@ -526,6 +526,64 @@ const CSS = `
     .grid-3 { grid-template-columns: 1fr 1fr; }
     .content { padding: 16px; padding-bottom: 80px; }
     .topbar { padding: 0 16px; }
+
+    /* Batch details mobile fixes */
+    .batch-detail-top-header {
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch !important;
+    }
+
+    .batch-detail-meta {
+      flex-wrap: wrap;
+      gap: 8px 14px !important;
+    }
+
+    .batch-detail-actions {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .batch-detail-actions .btn {
+      flex: 1 1 140px;
+    }
+
+    .batch-student-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+
+    .batch-student-controls {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .batch-student-controls .month-sel {
+      min-width: 170px;
+      flex: 1 1 170px;
+    }
+
+    .batch-student-controls .filter-tabs {
+      flex: 1 1 170px;
+    }
+
+    .batch-student-controls .btn {
+      flex: 1 1 150px;
+    }
+
+    .batch-student-filters {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .batch-student-filters .search-wrap,
+    .batch-student-filters .month-sel,
+    .batch-student-filters .btn {
+      width: 100%;
+      flex: 1 1 auto !important;
+    }
   }
 
   /* Batch color strip */
