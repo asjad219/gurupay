@@ -292,13 +292,29 @@ function DataPanel({ D, accentColor }) {
     {label:"Import Data", sub:"Restore from backup file",   color:"#FF8C42"},
     {label:"Clear Cache", sub:"Free up app storage",        color:"#7C6FFF"},
   ];
+
+  const handleDataAction = (actionLabel) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to ${actionLabel.toLowerCase()}?`
+    );
+
+    if (!confirmed) {
+      setMsg(`${actionLabel} cancelled.`);
+      setTimeout(() => setMsg(""), 2000);
+      return;
+    }
+
+    setMsg(`${actionLabel} started...`);
+    setTimeout(() => setMsg(""), 2500);
+  };
+
   return (
     <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
       <div style={{ padding:"10px 14px",borderRadius:10,background:`${accentColor}1a`,border:`1px solid ${accentColor}33` }}>
         <p style={{ fontSize:12,color:accentColor,fontWeight:600 }}>Last backup: Today, 9:00 AM</p>
       </div>
       {btns.map(b=>(
-        <div key={b.label} onClick={()=>{setMsg(`${b.label} started...`);setTimeout(()=>setMsg(""),2500);}}
+        <div key={b.label} onClick={()=>handleDataAction(b.label)}
           style={{ display:"flex",alignItems:"center",gap:12,padding:"13px 14px",borderRadius:12,cursor:"pointer",background:D.elevated,border:`1px solid ${D.border}` }}>
           <div style={{ width:36,height:36,borderRadius:9,flexShrink:0,background:`${b.color}22`,display:"flex",alignItems:"center",justifyContent:"center" }}>
             <div style={{ width:10,height:10,borderRadius:3,background:b.color }}/>
