@@ -71,9 +71,9 @@ useEffect(() => {
   }
 
   window.addEventListener("focus", onWindowFocus)
-  document.addEventListener("visibilitychange", onVisibilityChange)
+  document.addEventListener("visibilitychange", onVisibilityChange);
 
-  (async () => {
+  ;(async () => {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError) throw sessionError
