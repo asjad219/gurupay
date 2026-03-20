@@ -28,7 +28,7 @@ lineHeight: 1.5,
 fontSize: 14
 }}
 >
-Supabase is not configured yet. Add <b>REACT_APP_SUPABASE_URL</b> and <b>REACT_APP_SUPABASE_ANON_KEY</b> in your environment variables to enable login.
+Supabase is not configured yet. Add <b>VITE_SUPABASE_URL</b> and <b>VITE_SUPABASE_ANON_KEY</b> in your environment variables to enable login.
 </div>
 )}
 </div>
