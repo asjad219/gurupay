@@ -383,7 +383,7 @@ const BatchDetails = ({
                                 <button
                                   className="btn btn-primary btn-sm"
                                   onClick={() => onSendInvoice(student, payment)}
-                                  title="Send Invoice via WhatsApp"
+                                  title="Send Invoice"
                                 >
                                   📄 Send Invoice
                                 </button>
