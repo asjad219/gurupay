@@ -917,7 +917,7 @@ function buildSimplePdfFromLines(lines) {
 }
 
 function ReceiptModal({ student, batch, payment, profile, toast, onClose }) {
-  const [isSharing, setIsSharing] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const invoiceRef = useRef(null);
   const base = batch.fee - (student.discount || 0);
   const gst = Math.round(base * batch.gstRate / 100);
@@ -942,79 +942,45 @@ function ReceiptModal({ student, batch, payment, profile, toast, onClose }) {
   };
 
   const shareInvoiceToWhatsApp = async () => {
-    if (isSharing) return;
+    if (sharing) return;
 
-    const phone = student?.phone?.replace(/\D/g, "");
-    if (!phone || phone.length < 10) {
+    const rawPhone = (student?.phone || "").replace(/\D/g, "");
+    if (!rawPhone || rawPhone.length < 10) {
       alert("No valid phone number found for this student. Please update the student profile.");
       return;
     }
 
-    setIsSharing(true);
+    setSharing(true);
 
     try {
       const canvas = await captureInvoiceAsImage();
 
-      const blob = await new Promise((resolve) => {
-        canvas.toBlob(resolve, "image/png", 1.0);
-      });
+      const dataUrl = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `Receipt-${invoiceNo}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
-      if (!blob) {
-        throw new Error("Could not generate image");
-      }
-
-      const file = new File([blob], `Receipt-${invoiceNo}.png`, { type: "image/png" });
-
-      const canUseNativeShare =
-        typeof navigator !== "undefined" &&
-        typeof navigator.share === "function" &&
-        typeof navigator.canShare === "function" &&
-        navigator.canShare({ files: [file] });
-
-      if (canUseNativeShare) {
-        await navigator.share({
-          title: `Fee Receipt - ${studentName}`,
-          text: `Dear ${studentName}, your fee receipt for ₹${total.toLocaleString("en-IN")}. - ${instituteName}`,
-          files: [file],
-        });
-        return;
-      }
-
-      // Tier 2 fallback: download image then open WhatsApp Web with prefilled message
-      const downloadUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = downloadUrl;
-      anchor.download = `Receipt-${invoiceNo}.png`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-
-      const countryPhone = phone.startsWith("91") ? phone : `91${phone}`;
-      const msg = encodeURIComponent(
-        `Dear ${studentName}, your fee receipt (No: ${invoiceNo}) for ₹${total.toLocaleString("en-IN")} is ready. Please check the downloaded image. - ${instituteName}`
+      const phone = rawPhone.startsWith("91") ? rawPhone : `91${rawPhone}`;
+      const message = encodeURIComponent(
+        `Dear ${studentName},\n\nYour fee receipt has been saved to your device.\n\n` +
+        `Receipt No: ${invoiceNo}\nAmount Paid: ₹${total.toLocaleString("en-IN")}\nDate: ${invoiceDate}\nBatch: ${batch.name}\n\n` +
+        `— ${instituteName}`
       );
-      const fallbackWaUrl = `https://wa.me/${countryPhone}?text=${msg}`;
-      window.open(fallbackWaUrl, "_blank", "noopener,noreferrer");
+
+      window.location.href = `whatsapp://send?phone=${phone}&text=${message}`;
+
+      setTimeout(() => {
+        window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+      }, 1500);
     } catch (err) {
       if (err?.name !== "AbortError") {
         alert("Could not share. Please try again.");
       }
     } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const handleSaveImage = async () => {
-    try {
-      const canvas = await captureInvoiceAsImage();
-      const url = canvas.toDataURL("image/png");
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `Receipt-${invoiceNo}.png`;
-      anchor.click();
-    } catch {
-      alert("Could not save image. Please try again.");
+      setSharing(false);
     }
   };
 
@@ -1057,9 +1023,9 @@ function ReceiptModal({ student, batch, payment, profile, toast, onClose }) {
             <div style={{ textAlign: "center", fontSize: 11, color: "#888", marginTop: 6 }}>Thank you for your payment! 🙏</div>
           </div>
           <div className="invoice-actions" style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleSaveImage}>🖼 Save as Image</button>
-            <button className="btn btn-wa" style={{ flex: 1, backgroundColor: "#25D366" }} onClick={shareInvoiceToWhatsApp} disabled={isSharing}>
-              {isSharing ? "⏳ Generating..." : "📤 Share on WhatsApp"}
+            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => window.print()}>🖨️ Print</button>
+            <button className="btn btn-wa" style={{ flex: 1, backgroundColor: "#25D366" }} onClick={shareInvoiceToWhatsApp} disabled={sharing}>
+              {sharing ? "⏳ Please wait..." : "📤 Share on WhatsApp"}
             </button>
           </div>
         </div>
