@@ -1,4 +1,4 @@
-import { jsPDF } from "jspdf";
+import jsPDF from "jspdf";
 
 const formatINR = (amount = 0) =>
   new Intl.NumberFormat("en-IN", {
