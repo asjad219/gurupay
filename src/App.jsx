@@ -536,6 +536,17 @@ const CSS = `
     justify-content: center; border: 1.5px solid var(--border); background: var(--bg3);
     cursor: pointer; transition: var(--transition); font-size: 16px; }
   .theme-btn:hover { background: var(--bg4); }
+  .theme-btn .nav-icon { width: 16px; height: 16px; opacity: 1; }
+  [data-theme="dark"] .theme-btn {
+    background: #1f2937;
+    border-color: #334155;
+    color: #f8fafc;
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.2);
+  }
+  [data-theme="dark"] .theme-btn:hover {
+    background: #273449;
+    border-color: #475569;
+  }
 
   /* Month selector */
   .month-sel { padding: 7px 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
