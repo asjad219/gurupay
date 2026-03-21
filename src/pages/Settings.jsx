@@ -529,6 +529,9 @@ export default function GuruPaySettings({
   setProfile,
   features,
   setFeatures,
+  batches = [],
+  students = [],
+  payments = [],
 }) {
   const isThemeControlledByApp = appTheme === "light" || appTheme === "dark";
   const [localDark, setLocalDark] = useState(appTheme === "dark");
@@ -586,6 +589,13 @@ export default function GuruPaySettings({
 
   const accentColor = THEME_COLORS[colorTheme];
   const baseFontSize = FONT_SIZE_MAP[fontSize];
+
+  const totalBatches = Array.isArray(batches) ? batches.length : 0;
+  const totalStudents = Array.isArray(students) ? students.length : 0;
+  const activeStudents = Array.isArray(students)
+    ? students.filter((student) => (student?.status || "Active") === "Active").length
+    : 0;
+  const activeRate = totalStudents ? Math.round((activeStudents / totalStudents) * 100) : 0;
 
   const D = {
     isDark:   dark,
@@ -695,7 +705,7 @@ export default function GuruPaySettings({
             {/* ← Revenue replaced with Active Students */}
             <div style={{ display:"flex",gap:6,marginTop:12,paddingTop:12,
               borderTop:`1px solid ${dark?"rgba(255,255,255,0.07)":"rgba(0,0,0,0.06)"}` }}>
-              {[["12","Batches"],["340","Students"],["94%","Active"]].map(([val,lab])=>(
+              {[[`${totalBatches}`,"Batches"],[`${totalStudents}`,"Students"],[`${activeRate}%`,`Active`]].map(([val,lab])=>(
                 <div key={lab} style={{ flex:1,textAlign:"center",
                   background:dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.04)",
                   borderRadius:10,padding:"8px 4px",border:`1px solid ${D.border}` }}>

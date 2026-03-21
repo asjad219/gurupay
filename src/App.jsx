@@ -1990,7 +1990,7 @@ function GuruPayPro({ user }) {
             {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} deleteStudent={deleteStudent} />}
             {tab === "batches" && <BatchesTab batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} selectedBatch={selectedBatch} setSelectedBatch={setSelectedBatch} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
-            {tab === "settings" && <GuruPaySettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} uiSettings={uiSettings} setUiSettings={setUiSettings} toast={toast} user={user} />}
+            {tab === "settings" && <GuruPaySettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} uiSettings={uiSettings} setUiSettings={setUiSettings} batches={batches} students={students} payments={payments} toast={toast} user={user} />}
           </div>
 
           {/* Bottom Navigation for Mobile */}
