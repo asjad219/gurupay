@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 import Login from './Login'
 import GuruPaySettings from './pages/Settings';
 import BatchDetails from './components/BatchDetails';
-import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
 const VERSION_STORAGE_KEY = "gp_app_build_id";
@@ -918,152 +918,103 @@ function buildSimplePdfFromLines(lines) {
 
 function ReceiptModal({ student, batch, payment, profile, toast, onClose }) {
   const [isSharing, setIsSharing] = useState(false);
+  const invoiceRef = useRef(null);
   const base = batch.fee - (student.discount || 0);
   const gst = Math.round(base * batch.gstRate / 100);
   const late = payment.lateFee || 0;
   const total = base + gst + late;
 
-  const invoiceNo = `GP-${payment.id.toUpperCase()}`;
+  const invoiceNo = `GP-${String(payment.id || Date.now()).toUpperCase()}`;
   const invoiceDate = fmtDate(payment.paidOn || today());
   const invoiceMonth = monthLabel(payment.month);
+  const studentName = student?.name || "Student";
+  const instituteName = profile?.name || "GuruPay Institute";
 
-  const normalizeIndianPhone = (phone) => {
-    const digits = String(phone || "").replace(/\D/g, "");
-    if (digits.length === 10) return digits;
-    if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
-    return "";
-  };
+  const captureInvoiceAsImage = async () => {
+    if (!invoiceRef.current) throw new Error("Invoice content not ready");
 
-  const buildInvoicePdf = () => {
-    const doc = new jsPDF({ unit: "pt", format: "a4" });
-    const lineGap = 18;
-    let y = 60;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text(profile.name || "GuruPay Institute", 40, y);
-
-    y += lineGap;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    if (profile.address) {
-      doc.text(profile.address, 40, y);
-      y += lineGap;
-    }
-    if (profile.gstin) {
-      doc.text(`GSTIN: ${profile.gstin}`, 40, y);
-      y += lineGap;
-    }
-
-    doc.setDrawColor(190, 190, 190);
-    doc.line(40, y, 555, y);
-
-    y += 26;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text("TAX INVOICE", 40, y);
-
-    y += 24;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-
-    const rows = [
-      ["Invoice No", invoiceNo],
-      ["Date", invoiceDate],
-      ["Student", student.name],
-      ["Mobile", `+91 ${student.phone}`],
-      ["Batch", batch.name],
-      ["Period", invoiceMonth],
-      ["Base Fee", `INR ${base.toLocaleString("en-IN")}`],
-      ...(student.discount > 0 ? [["Discount", `INR ${student.discount.toLocaleString("en-IN")}`]] : []),
-      ...(gst > 0 ? [[`GST @ ${batch.gstRate}%`, `INR ${gst.toLocaleString("en-IN")}`]] : []),
-      ...(late > 0 ? [["Late Fee", `INR ${late.toLocaleString("en-IN")}`]] : []),
-      ["Total Paid", `INR ${total.toLocaleString("en-IN")}`],
-    ];
-
-    rows.forEach(([label, value]) => {
-      doc.text(`${label}:`, 40, y);
-      doc.text(String(value), 180, y);
-      y += lineGap;
+    return html2canvas(invoiceRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
     });
-
-    return doc.output("blob");
   };
 
   const shareInvoiceToWhatsApp = async () => {
     if (isSharing) return;
+
+    const phone = student?.phone?.replace(/\D/g, "");
+    if (!phone || phone.length < 10) {
+      alert("No valid phone number found for this student. Please update the student profile.");
+      return;
+    }
+
     setIsSharing(true);
 
     try {
-      const localPhone = normalizeIndianPhone(student?.phone);
-      if (!localPhone) {
-        toast?.("No phone number found for this student. Please update student profile.", { icon: "📵" });
-        return;
+      const canvas = await captureInvoiceAsImage();
+
+      const blob = await new Promise((resolve) => {
+        canvas.toBlob(resolve, "image/png", 1.0);
+      });
+
+      if (!blob) {
+        throw new Error("Could not generate image");
       }
 
-      const countryPhone = `91${localPhone}`;
-      const pdfBlob = buildInvoicePdf();
-      const fileName = `Receipt-${invoiceNo}.pdf`;
-      const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
-      const instituteName = profile?.name || "GuruPay Institute";
-      const shareText = `Dear ${student.name}, please find your fee receipt attached.\nInstitute: ${instituteName}`;
+      const file = new File([blob], `Receipt-${invoiceNo}.png`, { type: "image/png" });
 
       const canUseNativeShare =
         typeof navigator !== "undefined" &&
         typeof navigator.share === "function" &&
         typeof navigator.canShare === "function" &&
-        navigator.canShare({ files: [pdfFile] });
+        navigator.canShare({ files: [file] });
 
       if (canUseNativeShare) {
-        try {
-          await navigator.share({
-            title: `Fee Receipt - ${student.name}`,
-            text: shareText,
-            files: [pdfFile],
-          });
-          toast?.("Invoice shared successfully.", { icon: "✅" });
-          return;
-        } catch (shareError) {
-          if (shareError?.name === "AbortError") {
-            toast?.("Share cancelled.", { icon: "ℹ️" });
-            return;
-          }
-        }
+        await navigator.share({
+          title: `Fee Receipt - ${studentName}`,
+          text: `Dear ${studentName}, your fee receipt for ₹${total.toLocaleString("en-IN")}. - ${instituteName}`,
+          files: [file],
+        });
+        return;
       }
 
-      // Tier 2 fallback: download PDF then open WhatsApp Web with prefilled message
-      const downloadUrl = URL.createObjectURL(pdfBlob);
+      // Tier 2 fallback: download image then open WhatsApp Web with prefilled message
+      const downloadUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = downloadUrl;
-      anchor.download = fileName;
+      anchor.download = `Receipt-${invoiceNo}.png`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
 
+      const countryPhone = phone.startsWith("91") ? phone : `91${phone}`;
       const msg = encodeURIComponent(
-        `Dear ${student.name}, your fee receipt (Receipt No: ${invoiceNo}) for ₹${total.toLocaleString("en-IN")} has been generated. Please check the downloaded PDF. - ${instituteName}`
+        `Dear ${studentName}, your fee receipt (No: ${invoiceNo}) for ₹${total.toLocaleString("en-IN")} is ready. Please check the downloaded image. - ${instituteName}`
       );
       const fallbackWaUrl = `https://wa.me/${countryPhone}?text=${msg}`;
-      const waWindow = window.open(fallbackWaUrl, "_blank", "noopener,noreferrer");
-
-      if (waWindow) {
-        toast?.("PDF downloaded and WhatsApp opened.", { icon: "📲" });
-      } else {
-        toast?.("PDF downloaded to your device. Please share it manually on WhatsApp.", { icon: "📄" });
+      window.open(fallbackWaUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      if (err?.name !== "AbortError") {
+        alert("Could not share. Please try again.");
       }
-    } catch {
-      toast?.("PDF downloaded to your device. Please share it manually on WhatsApp.", { icon: "⚠️" });
     } finally {
       setIsSharing(false);
     }
   };
 
-  const handlePrintInvoice = () => {
+  const handleSaveImage = async () => {
     try {
-      window.print();
+      const canvas = await captureInvoiceAsImage();
+      const url = canvas.toDataURL("image/png");
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `Receipt-${invoiceNo}.png`;
+      anchor.click();
     } catch {
-      toast?.("Could not open print dialog. Please try again.", { icon: "⚠️" });
+      alert("Could not save image. Please try again.");
     }
   };
 
@@ -1076,7 +1027,16 @@ function ReceiptModal({ student, batch, payment, profile, toast, onClose }) {
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><I.X /></button>
         </div>
         <div className="modal-body">
-          <div className="receipt">
+          <div
+            className="receipt"
+            ref={invoiceRef}
+            style={{
+              background: "#ffffff",
+              padding: 16,
+              boxShadow: "none",
+              WebkitFontSmoothing: "antialiased",
+            }}
+          >
             <div style={{ textAlign: "center", marginBottom: 12 }}>
               <div className="receipt-logo">{profile.name}</div>
               <div style={{ color: "#555", fontSize: 11, marginTop: 3 }}>{profile.address}</div>
@@ -1097,9 +1057,9 @@ function ReceiptModal({ student, batch, payment, profile, toast, onClose }) {
             <div style={{ textAlign: "center", fontSize: 11, color: "#888", marginTop: 6 }}>Thank you for your payment! 🙏</div>
           </div>
           <div className="invoice-actions" style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handlePrintInvoice}>🖨 Print</button>
-            <button className="btn btn-wa" style={{ flex: 1 }} onClick={shareInvoiceToWhatsApp} disabled={isSharing}>
-              <I.WA /> {isSharing ? "Generating..." : "Share"}
+            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleSaveImage}>🖼 Save as Image</button>
+            <button className="btn btn-wa" style={{ flex: 1, backgroundColor: "#25D366" }} onClick={shareInvoiceToWhatsApp} disabled={isSharing}>
+              {isSharing ? "⏳ Generating..." : "📤 Share on WhatsApp"}
             </button>
           </div>
         </div>
