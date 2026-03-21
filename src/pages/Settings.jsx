@@ -51,6 +51,7 @@ const THEME_COLORS = {
 
 // Font size map
 const FONT_SIZE_MAP = { Small: 12, Medium: 14, Large: 16 };
+const DEFAULT_UI_SETTINGS = { colorTheme: "Default Green", fontSize: "Medium" };
 
 // ── Toggle ───────────────────────────────────────────────────────────
 function Toggle({ on, onToggle, accentColor = "#10a34a" }) {
@@ -522,6 +523,8 @@ export default function GuruPaySettings({
   embedded = false,
   theme: appTheme,
   setTheme: setAppTheme,
+  uiSettings,
+  setUiSettings,
   profile,
   setProfile,
   features,
@@ -549,9 +552,38 @@ export default function GuruPaySettings({
   const [sec, setSec]         = useState("business");
   const [nav, setNav]         = useState("settings");
 
-  // ── Appearance state lifted here so it applies globally ──
-  const [colorTheme, setColorTheme] = useState("Default Green");
-  const [fontSize, setFontSize] = useState("Medium");
+  const isUiSettingsControlled = !!uiSettings && typeof setUiSettings === "function";
+  const [localUiSettings, setLocalUiSettings] = useState(DEFAULT_UI_SETTINGS);
+
+  useEffect(() => {
+    if (isUiSettingsControlled) {
+      setLocalUiSettings({ ...DEFAULT_UI_SETTINGS, ...uiSettings });
+    }
+  }, [isUiSettingsControlled, uiSettings]);
+
+  const resolvedUiSettings = isUiSettingsControlled
+    ? { ...DEFAULT_UI_SETTINGS, ...uiSettings }
+    : localUiSettings;
+
+  const colorTheme = resolvedUiSettings.colorTheme;
+  const fontSize = resolvedUiSettings.fontSize;
+
+  const setColorTheme = (nextTheme) => {
+    if (isUiSettingsControlled) {
+      setUiSettings((prev) => ({ ...DEFAULT_UI_SETTINGS, ...(prev || {}), colorTheme: nextTheme }));
+      return;
+    }
+    setLocalUiSettings((prev) => ({ ...DEFAULT_UI_SETTINGS, ...prev, colorTheme: nextTheme }));
+  };
+
+  const setFontSize = (nextFontSize) => {
+    if (isUiSettingsControlled) {
+      setUiSettings((prev) => ({ ...DEFAULT_UI_SETTINGS, ...(prev || {}), fontSize: nextFontSize }));
+      return;
+    }
+    setLocalUiSettings((prev) => ({ ...DEFAULT_UI_SETTINGS, ...prev, fontSize: nextFontSize }));
+  };
+
   const accentColor = THEME_COLORS[colorTheme];
   const baseFontSize = FONT_SIZE_MAP[fontSize];
 

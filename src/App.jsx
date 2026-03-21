@@ -182,6 +182,16 @@ const SEED_PROFILE = {
 // Default feature settings
 const DEFAULT_FEATURES = { showStudents: true, showAttendance: true, showPayments: true, showReports: true, enableNotifications: true, enableDarkMode: true, enableWaiveFee: true, enableGST: true, enableWhatsApp: true };
 const DEFAULT_WHATSAPP_CONFIG = { mode: "default", customTemplate: "" };
+const DEFAULT_UI_SETTINGS = { colorTheme: "Default Green", fontSize: "Medium" };
+
+const UI_THEME_PALETTE = {
+  "Default Green": { accent: "#059669", accentDark: "#047857", accentLight: "#ecfdf5" },
+  "Ocean Blue": { accent: "#2563eb", accentDark: "#1d4ed8", accentLight: "#eff6ff" },
+  "Royal Purple": { accent: "#7c3aed", accentDark: "#6d28d9", accentLight: "#f5f3ff" },
+  "Sunset Orange": { accent: "#ea580c", accentDark: "#c2410c", accentLight: "#fff7ed" },
+};
+
+const UI_FONT_SIZE = { Small: "12px", Medium: "14px", Large: "16px" };
 
 function normalizeWhatsAppConfig(config) {
   const mode = config?.mode === "custom" ? "custom" : "default";
@@ -193,7 +203,7 @@ function normalizeWhatsAppConfig(config) {
 }
 
 // ─── Storage ──────────────────────────────────────────────────────────────────
-const KEYS = { batches: "gp2_b", students: "gp2_s", payments: "gp2_p", profile: "gp2_pr", theme: "gp2_th", features: "gp2_feat", whatsappConfig: "gp2_wa_cfg" };
+const KEYS = { batches: "gp2_b", students: "gp2_s", payments: "gp2_p", profile: "gp2_pr", theme: "gp2_th", features: "gp2_feat", whatsappConfig: "gp2_wa_cfg", uiSettings: "gp2_ui" };
 async function dbGet(k, fallback) {
   try { const val = localStorage.getItem(k); return val ? JSON.parse(val) : fallback; }
   catch { return fallback; }
@@ -1723,6 +1733,7 @@ function GuruPayPro({ user }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [features, setFeatures] = useState(DEFAULT_FEATURES);
   const [whatsappConfig, setWhatsappConfig] = useState(DEFAULT_WHATSAPP_CONFIG);
+  const [uiSettings, setUiSettings] = useState(DEFAULT_UI_SETTINGS);
   const [selectedBatch, setSelectedBatch] = useState(null);
   const { toasts, push: toast, dismiss } = useToast();
 
@@ -1731,11 +1742,12 @@ function GuruPayPro({ user }) {
 
   useEffect(() => {
     (async () => {
-      const [b, s, p, pr, th, feat, waCfg] = await Promise.all([
+      const [b, s, p, pr, th, feat, waCfg, uiCfg] = await Promise.all([
         dbGet(KEYS.batches, SEED_BATCHES), dbGet(KEYS.students, SEED_STUDENTS),
         dbGet(KEYS.payments, SEED_PAYMENTS), dbGet(KEYS.profile, SEED_PROFILE), dbGet(KEYS.theme, "light"),
         dbGet(KEYS.features, DEFAULT_FEATURES),
         dbGet(KEYS.whatsappConfig, DEFAULT_WHATSAPP_CONFIG),
+        dbGet(KEYS.uiSettings, DEFAULT_UI_SETTINGS),
       ]);
       // ensure new fields exist on loaded students
       const normalizedStudents = (s || []).map(st => ({
@@ -1744,6 +1756,7 @@ function GuruPayPro({ user }) {
         ...st
       }));
       setBatches(b); setStudents(normalizedStudents); setPayments(p); setProfile(pr); setTheme(th); setFeatures(feat); setWhatsappConfig(normalizeWhatsAppConfig(waCfg || DEFAULT_WHATSAPP_CONFIG));
+      setUiSettings({ ...DEFAULT_UI_SETTINGS, ...(uiCfg || {}) });
       setLoading(false);
     })();
   }, []);
@@ -1764,6 +1777,21 @@ function GuruPayPro({ user }) {
   useEffect(() => {
     dbSet(KEYS.whatsappConfig, whatsappConfig);
   }, [whatsappConfig]);
+
+  useEffect(() => {
+    dbSet(KEYS.uiSettings, uiSettings);
+  }, [uiSettings]);
+
+  useEffect(() => {
+    const palette = UI_THEME_PALETTE[uiSettings?.colorTheme] || UI_THEME_PALETTE[DEFAULT_UI_SETTINGS.colorTheme];
+    const baseFont = UI_FONT_SIZE[uiSettings?.fontSize] || UI_FONT_SIZE[DEFAULT_UI_SETTINGS.fontSize];
+    const root = document.documentElement;
+
+    root.style.setProperty("--accent", palette.accent);
+    root.style.setProperty("--accent-dark", palette.accentDark);
+    root.style.setProperty("--accent-light", palette.accentLight);
+    root.style.setProperty("--global-font-size", baseFont);
+  }, [uiSettings]);
 
   useEffect(() => {
     if (
@@ -1962,7 +1990,7 @@ function GuruPayPro({ user }) {
             {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} deleteStudent={deleteStudent} />}
             {tab === "batches" && <BatchesTab batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} selectedBatch={selectedBatch} setSelectedBatch={setSelectedBatch} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
-            {tab === "settings" && <GuruPaySettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} toast={toast} user={user} />}
+            {tab === "settings" && <GuruPaySettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} uiSettings={uiSettings} setUiSettings={setUiSettings} toast={toast} user={user} />}
           </div>
 
           {/* Bottom Navigation for Mobile */}
