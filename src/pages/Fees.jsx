@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
+import ReceiptButton from "../components/fees/ReceiptButton";
 
 const monthKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -32,7 +33,7 @@ const I = {
 
 export default function Fees() {
   const { state, dispatch } = useApp();
-  const { batches, students, payments, businessProfile: profile } = state;
+  const { batches, students, payments, businessProfile: profile, settings } = state;
   const setPayments = (np) => dispatch({ type: "SET_PAYMENTS", payload: np });
   const toast = () => {};
   const openModal = () => {};
@@ -112,6 +113,21 @@ export default function Fees() {
                     <td>{p?.status || "not generated"}</td>
                     <td>{p?.status === "paid" ? fmtDate(p.paidOn) : "—"}</td>
                     <td><div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
+                      {p?.status === "paid" && (
+                        <ReceiptButton
+                          student={{
+                            ...s,
+                            dueAmount: s?.dueAmount ?? Math.max((b?.fee || 0) - (p?.amount || 0), 0),
+                          }}
+                          batch={b}
+                          payment={p}
+                          settingsData={{
+                            ...settings,
+                            ...profile,
+                            instituteName: profile?.name || settings?.instituteName,
+                          }}
+                        />
+                      )}
                       {p?.status === "paid" && <button className="btn btn-danger btn-sm" onClick={() => handleUndo(p)}><I.Undo /></button>}
                       {p?.status === "paid" && <button className="btn btn-secondary btn-sm" onClick={() => openModal("receipt", { student: s, batch: b, payment: p })}><I.Receipt /></button>}
                     </div></td>
