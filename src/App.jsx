@@ -1426,7 +1426,7 @@ function BatchesTab({ batches, setBatches, students, setStudents, payments, setP
   if (selectedBatch) {
     return (
       <div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setSelectedBatch(null)} style={{ marginBottom: 12 }}><I.X /> Back to all batches</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => setSelectedBatch(null)} style={{ marginBottom: 12 }}><span aria-hidden="true">&lt;</span> Back to all batches</button>
         <BatchDetails
           batch={selectedBatch}
           students={students}
