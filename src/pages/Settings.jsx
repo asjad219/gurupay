@@ -532,6 +532,7 @@ export default function GuruPaySettings({
   batches = [],
   students = [],
   payments = [],
+  user,
 }) {
   const isThemeControlledByApp = appTheme === "light" || appTheme === "dark";
   const [localDark, setLocalDark] = useState(appTheme === "dark");
@@ -607,6 +608,15 @@ export default function GuruPaySettings({
     textSec:  dark?"#8B8FA8":"#6b7280",
     textMuted:dark?"#4B4F6B":"#9ca3af",
   };
+
+  const businessName = (profile?.name || "").trim();
+  const profileEmail = (profile?.email || "").trim();
+  const userEmail = (user?.email || "").trim();
+  const headerTitle = businessName || profileEmail || userEmail || "GuruPay Business";
+  const headerSubtitle = businessName
+    ? (profileEmail || userEmail || "Signed in")
+    : "Signed in";
+  const headerAvatarInitial = (headerTitle?.[0] || "G").toUpperCase();
 
   const PANELS = {
     business:  <BusinessPanel D={D} accentColor={accentColor} profile={profile} setProfile={setProfile}/>,
@@ -692,11 +702,11 @@ export default function GuruPaySettings({
                 background:`linear-gradient(135deg,${accentColor},${accentColor}cc)`,
                 display:"flex",alignItems:"center",justifyContent:"center",
                 boxShadow:`0 4px 14px ${accentColor}70` }}>
-                <span style={{ fontFamily:"'Outfit',sans-serif",fontSize:20,fontWeight:900,color:"#fff" }}>B</span>
+                <span style={{ fontFamily:"'Outfit',sans-serif",fontSize:20,fontWeight:900,color:"#fff" }}>{headerAvatarInitial}</span>
               </div>
               <div style={{ flex:1 }}>
-                <p style={{ fontSize:13,fontWeight:600,color:D.textPri }}>baraktea01@gmail.com</p>
-                <p style={{ fontSize:11,color:D.textSec,marginTop:2 }}>Signed in</p>
+                <p style={{ fontSize:13,fontWeight:600,color:D.textPri }}>{headerTitle}</p>
+                <p style={{ fontSize:11,color:D.textSec,marginTop:2 }}>{headerSubtitle}</p>
               </div>
               <div style={{ background:`${accentColor}33`,border:`1px solid ${accentColor}66`,borderRadius:999,padding:"4px 10px" }}>
                 <span style={{ fontSize:11,fontWeight:800,color:accentColor,letterSpacing:0.5 }}>PRO ✦</span>
