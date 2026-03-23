@@ -1655,10 +1655,10 @@ function BatchesTab({ user, batches, setBatches, students, setStudents, payments
           students={students}
           payments={payments}
           onEditBatch={(b) => openModal("editBatch", b)}
-          onDeleteBatch={(b) => openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete "${b.name}"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) })}
+          onDeleteBatch={(b) => openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete "${b.name}"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(user.id, b.id) })}
           onAddStudent={() => openModal("addStudent", { batchId: selectedBatch.id })}
           onEditStudent={(s) => openModal("editStudent", s)}
-          onDeleteStudent={(s) => openModal("confirm", { icon: "🗑️", title: "Remove Student?", msg: `Remove ${s.name} from this batch?`, confirmLabel: "Remove", danger: true, onConfirm: () => deleteStudent(s) })}
+          onDeleteStudent={(s) => openModal("confirm", { icon: "🗑️", title: "Remove Student?", msg: `Remove ${s.name} from this batch?`, confirmLabel: "Remove", danger: true, onConfirm: () => deleteStudent(user.id, s.id) })}
           onMarkPaid={(s,p) => openModal("markPaid", { student: s, batch: selectedBatch, payment: p })}
           onWaiveFee={(s,p) => openModal("waive", { student: s, batch: selectedBatch, payment: p })}
           onSendInvoice={(s,p) => openModal("receipt", { student: s, batch: selectedBatch, payment: p })}
