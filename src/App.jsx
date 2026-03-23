@@ -797,7 +797,7 @@ function ConfirmModal({ icon, title, msg, confirmLabel = "Confirm", danger, onCo
         </div>
         <div className="modal-footer" style={{ justifyContent: "center", gap: 10 }}>
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button className={`btn ${danger ? "btn-danger" : "btn-primary"}`} onClick={() => { onConfirm(); onClose(); }}>
+          <button className={`btn ${danger ? "btn-danger" : "btn-primary"}`} onClick={() => { console.log('[DEBUG] Confirm button clicked, calling onConfirm'); onConfirm(); onClose(); }}>
             {confirmLabel}
           </button>
         </div>
@@ -1547,7 +1547,21 @@ function FeesTab({ batches, students, payments, setPayments, selectedMonth, setS
                       <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
                         <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openModal("studentHistory", s)} title="View history"><I.History /></button>
                         <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openModal("editStudent", s)} title="Edit"><I.Edit /></button>
-                        <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={() => openModal("confirm", { icon: "🗑️", title: "Remove Student?", msg: `Remove ${s.name} from all batches and delete their payment records?`, confirmLabel: "Remove", danger: true, onConfirm: () => deleteStudent(s) })} title="Delete"><I.Trash /></button>
+                        <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={() => { 
+                          console.log('[DEBUG] Delete student clicked:', s.name); 
+                          const studentData = s;
+                          openModal("confirm", { 
+                            icon: "🗑️", 
+                            title: "Remove Student?", 
+                            msg: `Remove ${s.name} from all batches and delete their payment records?`, 
+                            confirmLabel: "Remove", 
+                            danger: true, 
+                            onConfirm: () => { 
+                              console.log('[DEBUG] Confirm delete for student:', studentData.name, 'ID:', studentData.id);
+                              deleteStudent(studentData); 
+                            } 
+                          }); 
+                        }} title="Delete"><I.Trash /></button>
                       </div>
                     </td>
                   </tr>
@@ -1570,7 +1584,9 @@ function BatchesTab({ user, batches, setBatches, students, setStudents, payments
   const [batchFilter, setBatchFilter] = useState("");
 
   const deleteBatch = async (batch) => {
+    console.log('[DEBUG] deleteBatch wrapper called with:', batch);
     const hasStu = students.some(s => s.batchId === batch.id);
+    console.log('[DEBUG] Batch has students:', hasStu);
     if (hasStu) { toast("Cannot delete batch with students. Move students first.", { icon: "⚠️" }); return; }
     const prev = [...batches];
     const nb = batches.filter(b => b.id !== batch.id);
@@ -1588,6 +1604,7 @@ function BatchesTab({ user, batches, setBatches, students, setStudents, payments
   };
 
   const deleteStudent = async (student) => {
+    console.log('[DEBUG] deleteStudent wrapper called with:', student);
     const prev = { students: [...students], payments: [...payments] };
     const ns = students.filter(s => s.id !== student.id);
     const np = payments.filter(p => p.studentId !== student.id);
@@ -1596,10 +1613,13 @@ function BatchesTab({ user, batches, setBatches, students, setStudents, payments
     
     // Also delete from Supabase if user is logged in
     if (user?.id) {
+      console.log('[DEBUG] Deleting from Supabase, userId:', user.id, 'studentId:', student.id);
       await deleteStudent(user.id, student.id).catch(console.error);
       for (const p of prev.payments.filter(p => p.studentId === student.id)) {
         await deletePayment(user.id, p.id).catch(console.error);
       }
+    } else {
+      console.log('[DEBUG] No user logged in, skipping Supabase delete');
     }
     
     toast("Student removed", { icon: "🗑️", onUndo: async () => { setStudents(prev.students); setPayments(prev.payments); await dbSet(KEYS.students, prev.students); await dbSet(KEYS.payments, prev.payments); } });
@@ -1655,10 +1675,10 @@ function BatchesTab({ user, batches, setBatches, students, setStudents, payments
           students={students}
           payments={payments}
           onEditBatch={(b) => openModal("editBatch", b)}
-          onDeleteBatch={(b) => openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete "${b.name}"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(user.id, b.id) })}
+          onDeleteBatch={(b) => openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete "${b.name}"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) })}
           onAddStudent={() => openModal("addStudent", { batchId: selectedBatch.id })}
           onEditStudent={(s) => openModal("editStudent", s)}
-          onDeleteStudent={(s) => openModal("confirm", { icon: "🗑️", title: "Remove Student?", msg: `Remove ${s.name} from this batch?`, confirmLabel: "Remove", danger: true, onConfirm: () => deleteStudent(user.id, s.id) })}
+          onDeleteStudent={(s) => openModal("confirm", { icon: "🗑️", title: "Remove Student?", msg: `Remove ${s.name} from this batch?`, confirmLabel: "Remove", danger: true, onConfirm: () => deleteStudent(s) })}
           onMarkPaid={(s,p) => openModal("markPaid", { student: s, batch: selectedBatch, payment: p })}
           onWaiveFee={(s,p) => openModal("waive", { student: s, batch: selectedBatch, payment: p })}
           onSendInvoice={(s,p) => openModal("receipt", { student: s, batch: selectedBatch, payment: p })}
@@ -1704,7 +1724,23 @@ function BatchesTab({ user, batches, setBatches, students, setStudents, payments
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); openModal("editBatch", b); }}><I.Edit /></button>
-                    <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={(e) => { e.stopPropagation(); openModal("confirm", { icon: "🗑️", title: "Delete Batch?", msg: `Delete "${b.name}"? This cannot be undone.`, confirmLabel: "Delete", danger: true, onConfirm: () => deleteBatch(b) }); }}><I.Trash /></button>
+                    <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={(e) => { 
+                      e.stopPropagation(); 
+                      e.preventDefault();
+                      console.log('[DEBUG] Delete batch button clicked, opening modal for:', b.name);
+                      const batchData = b;
+                      openModal("confirm", { 
+                        icon: "🗑️", 
+                        title: "Delete Batch?", 
+                        msg: `Delete "${b.name}"? This cannot be undone.`, 
+                        confirmLabel: "Delete", 
+                        danger: true, 
+                        onConfirm: () => { 
+                          console.log('[DEBUG] Confirm delete for batch:', batchData.name, 'ID:', batchData.id);
+                          deleteBatch(batchData); 
+                        } 
+                      }); 
+                    }}><I.Trash /></button>
                   </div>
                 </div>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: b.color, marginBottom: 8 }}>
@@ -1751,7 +1787,21 @@ function BatchesTab({ user, batches, setBatches, students, setStudents, payments
                       <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
                         <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openModal("studentHistory", s)} title="View history"><I.History /></button>
                         <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openModal("editStudent", s)} title="Edit"><I.Edit /></button>
-                        <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={() => openModal("confirm", { icon: "🗑️", title: "Remove Student?", msg: `Remove ${s.name} from all batches and delete their payment records?`, confirmLabel: "Remove", danger: true, onConfirm: () => deleteStudent(s) })} title="Delete"><I.Trash /></button>
+                        <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)" }} onClick={() => { 
+                          console.log('[DEBUG] Delete student clicked:', s.name); 
+                          const studentData = s;
+                          openModal("confirm", { 
+                            icon: "🗑️", 
+                            title: "Remove Student?", 
+                            msg: `Remove ${s.name} from all batches and delete their payment records?`, 
+                            confirmLabel: "Remove", 
+                            danger: true, 
+                            onConfirm: () => { 
+                              console.log('[DEBUG] Confirm delete for student:', studentData.name, 'ID:', studentData.id);
+                              deleteStudent(studentData); 
+                            } 
+                          }); 
+                        }} title="Delete"><I.Trash /></button>
                       </div>
                     </td>
                   </tr>
