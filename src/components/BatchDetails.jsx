@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { I } from '../app';
-import { fmtINR, fmtDate, monthLabel, curMonth } from '../utils';
+import { I } from '../App';
+import { fmtINR, fmtDate, monthLabel, curMonth } from '../utils.js';
 
 const BatchDetails = ({ 
   batch, 
