@@ -15,16 +15,7 @@ export default function TopBar({ page, dark, setDark }) {
         position: "sticky", top: 0, zIndex: 50,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 34, height: 34,
-            background: "linear-gradient(135deg,#1B8A5A,#22A96E)",
-            borderRadius: 10, display: "flex",
-            alignItems: "center", justifyContent: "center",
-            fontWeight: 900, color: "white", fontSize: 16,
-          }}>G</div>
-          <span style={{ fontSize: 17, fontWeight: 900, color: "var(--text)", letterSpacing: -0.3 }}>
-            GuruPay Pro
-          </span>
+          <img src="/feesync-logo.png" alt="FeeSync" height="36" />
         </div>
         <button onClick={() => setDark(!dark)} style={{
           width: 36, height: 36, borderRadius: "50%",

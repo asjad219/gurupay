@@ -37,8 +37,8 @@ const AuthModal = ({ isOpen, onClose, initialView = 'sign_in' }) => {
               {currentView === 'update_password' && '🔒 Change Password'}
             </div>
             <div className="modal-subtitle">
-              {currentView === 'sign_in' && 'Access your GuruPay account'}
-              {currentView === 'sign_up' && 'Create your GuruPay account'}
+              {currentView === 'sign_in' && 'Access your FeeSync account'}
+              {currentView === 'sign_up' && 'Create your FeeSync account'}
               {currentView === 'forgotten_password' && 'Reset your password'}
               {currentView === 'update_password' && 'Update your password'}
             </div>
@@ -53,7 +53,7 @@ const AuthModal = ({ isOpen, onClose, initialView = 'sign_in' }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <div style={{ fontSize: '24px' }}>🪔</div>
               <div>
-                <div style={{ fontWeight: '700', fontSize: '16px', color: 'var(--text)' }}>GuruPay Pro</div>
+                <div style={{ fontWeight: '700', fontSize: '16px', color: 'var(--text)' }}>FeeSync – Smart Fee Management</div>
                 <div style={{ fontSize: '12px', color: 'var(--text4)' }}>Professional Fee Management</div>
               </div>
             </div>

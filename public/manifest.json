@@ -1,6 +1,6 @@
 {
-"name": "GuruPay",
-"short_name": "GuruPay",
+"name": "FeeSync",
+"short_name": "FeeSync",
 "description": "Coaching Fee Manager for Indian Tutors",
 "start_url": "/",
 "display": "standalone",

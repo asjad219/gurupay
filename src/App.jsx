@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from './supabase'
 import Login from './Login'
-import GuruPaySettings from './pages/Settings';
+import FeeSyncSettings from './pages/Settings';
 import BatchDetails from './components/BatchDetails';
 import html2canvas from "html2canvas";
 import { 
@@ -129,7 +129,7 @@ useEffect(() => {
 if (error) return <div style={{ padding: '2rem', color: 'red', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❌ Error: {error}</div>
 if (loading) return <div style={{ padding: '2rem', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⏳ Loading...</div>
 if (!user) return <Login />
-return <GuruPayPro user={user} /> // show app when logged in
+return <FeeSyncPro user={user} /> // show app when logged in
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -942,7 +942,7 @@ function ReceiptModal({ student, batch, payment, profile, toast, onClose }) {
   const invoiceDate = fmtDate(payment.paidOn || today());
   const invoiceMonth = monthLabel(payment.month);
   const studentName = student?.name || "Student";
-  const instituteName = profile?.name || "GuruPay Institute";
+  const instituteName = profile?.name || "FeeSync Institute";
 
   const captureInvoiceAsImage = async () => {
     if (!invoiceRef.current) throw new Error("Invoice content not ready");
@@ -1469,7 +1469,7 @@ function FeesTab({ batches, students, payments, setPayments, selectedMonth, setS
     });
     const csv = rows.map(r => r.map(c => `\"${c}\"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `GuruPay_${selectedMonth}.csv`; a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `FeeSync_${selectedMonth}.csv`; a.click();
     toast("CSV exported!", { icon: "📥" });
   };
 
@@ -2015,7 +2015,7 @@ function BulkReminderModal({ unpaid, students, batches, selectedMonth, whatsappC
 }
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
-function GuruPayPro({ user }) {
+function FeeSyncPro({ user }) {
   const [tab, setTab] = useState("dashboard");
   const [batches, setBatches] = useState([]);
   const [students, setStudents] = useState([]);
@@ -2313,7 +2313,7 @@ function GuruPayPro({ user }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "var(--font-display)", color: "var(--accent)", background: "var(--bg)", flexDirection: "column", gap: 16 }}>
       <style>{CSS}</style>
       <div style={{ fontSize: 40 }}>🪔</div>
-      <div style={{ fontSize: 18, fontWeight: 700 }}>GuruPay</div>
+      <div style={{ fontSize: 18, fontWeight: 700 }}>FeeSync</div>
       <div style={{ fontSize: 13, color: "var(--text4)" }}>Loading your dashboard...</div>
     </div>
   );
@@ -2350,9 +2350,7 @@ function GuruPayPro({ user }) {
         {/* Sidebar */}
         <aside className={`sidebar ${sidebarOpen ? "mobile-open" : ""}`}>
           <div className="sidebar-logo">
-            <span className="logo-icon">🪔</span>
-            <div className="logo-name">GuruPay</div>
-            <div className="logo-sub">Pro</div>
+            <img src="/feesync-logo.png" alt="FeeSync" height="36" />
           </div>
           <nav className="nav">
             {NAV.map(([id, label, icon, badge]) => (
@@ -2410,7 +2408,7 @@ function GuruPayPro({ user }) {
             {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} deleteStudent={deleteStudent} />}
             {tab === "batches" && <BatchesTab user={user} batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} selectedBatch={selectedBatch} setSelectedBatch={setSelectedBatch} profile={profile} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
-            {tab === "settings" && <GuruPaySettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} uiSettings={uiSettings} setUiSettings={setUiSettings} batches={batches} students={students} payments={payments} toast={toast} user={user} />}
+            {tab === "settings" && <FeeSyncSettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} uiSettings={uiSettings} setUiSettings={setUiSettings} batches={batches} students={students} payments={payments} toast={toast} user={user} />}
           </div>
 
           {/* Bottom Navigation for Mobile */}

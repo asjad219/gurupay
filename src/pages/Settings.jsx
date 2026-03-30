@@ -588,7 +588,7 @@ function BusinessPanel({ D, accentColor, profile, setProfile }) {
 }
 
 // ── MAIN ─────────────────────────────────────────────────────────────
-export default function GuruPaySettings({
+export default function FeeSyncSettings({
   embedded = false,
   theme: appTheme,
   setTheme: setAppTheme,
@@ -682,7 +682,7 @@ export default function GuruPaySettings({
   const businessName = (profile?.name || "").trim();
   const profileEmail = (profile?.email || "").trim();
   const userEmail = (user?.email || "").trim();
-  const headerTitle = businessName || profileEmail || userEmail || "GuruPay Business";
+  const headerTitle = businessName || profileEmail || userEmail || "FeeSync Business";
   const headerSubtitle = businessName
     ? (profileEmail || userEmail || "Signed in")
     : "Signed in";
@@ -738,7 +738,7 @@ export default function GuruPaySettings({
                   color:dark?"#FFFFFF":D.textPri }}>
                   Settings
                 </h1>
-                <p style={{ fontSize:10,color:D.textMuted,fontWeight:500,letterSpacing:0.4 }}>GuruPay Pro</p>
+                <p style={{ fontSize:10,color:D.textMuted,fontWeight:500,letterSpacing:0.4 }}>FeeSync – Smart Fee Management</p>
               </div>
             </div>
             <button onClick={()=>setDark(v=>!v)} style={{ width:38,height:38,borderRadius:999,

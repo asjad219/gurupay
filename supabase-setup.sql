@@ -1,4 +1,4 @@
--- GuruPay Pro Supabase Database Setup
+-- FeeSync – Smart Fee Management Supabase Database Setup
 -- Run this SQL in your Supabase project's SQL Editor
 
 -- Create batches table (user_id is UUID to match auth.users)

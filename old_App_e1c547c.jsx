@@ -29,7 +29,7 @@ useEffect(() => {
 if (error) return <div style={{ padding: '2rem', color: 'red', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❌ Error: {error}</div>
 if (loading) return <div style={{ padding: '2rem', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⏳ Loading...</div>
 if (!user) return <Login />
-return <GuruPayPro user={user} /> // show app when logged in
+return <FeeSyncPro user={user} /> // show app when logged in
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -992,7 +992,7 @@ function FeesTab({ batches, students, payments, setPayments, selectedMonth, setS
     });
     const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `GuruPay_${selectedMonth}.csv`; a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `FeeSync_${selectedMonth}.csv`; a.click();
     toast("CSV exported!", { icon: "📥" });
   };
 
@@ -1444,7 +1444,7 @@ function BulkReminderModal({ unpaid, students, batches, selectedMonth, onClose }
 }
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
-function GuruPayPro({ user }) {
+function FeeSyncPro({ user }) {
   const [tab, setTab] = useState("dashboard");
   const [batches, setBatches] = useState([]);
   const [students, setStudents] = useState([]);
@@ -1554,7 +1554,7 @@ function GuruPayPro({ user }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "var(--font-display)", color: "var(--accent)", background: "var(--bg)", flexDirection: "column", gap: 16 }}>
       <style>{CSS}</style>
       <div style={{ fontSize: 40 }}>🪔</div>
-      <div style={{ fontSize: 18, fontWeight: 700 }}>GuruPay</div>
+      <div style={{ fontSize: 18, fontWeight: 700 }}>FeeSync</div>
       <div style={{ fontSize: 13, color: "var(--text4)" }}>Loading your dashboard...</div>
     </div>
   );
@@ -1592,7 +1592,7 @@ function GuruPayPro({ user }) {
         <aside className={`sidebar ${sidebarOpen ? "mobile-open" : ""}`}>
           <div className="sidebar-logo">
             <span className="logo-icon">🪔</span>
-            <div className="logo-name">GuruPay</div>
+            <div className="logo-name">FeeSync</div>
             <div className="logo-sub">Pro</div>
           </div>
           <nav className="nav">

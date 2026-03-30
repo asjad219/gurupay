@@ -30,7 +30,7 @@ export default function ReceiptButton({ student, batch, payment, settingsData })
     );
 
     const instituteName =
-      settingsData?.instituteName || settingsData?.name || "GuruPay Institute";
+      settingsData?.instituteName || settingsData?.name || "FeeSync Institute";
 
     const message = `Dear ${student?.name || "Student"}, please find your fee receipt attached. Receipt No: ${receiptNo}, Amount: ₹${Number(
       payment?.amount || 0

@@ -22,7 +22,7 @@ export function generateReceiptPDF(studentData = {}, paymentData = {}, settingsD
   const doc = new jsPDF({ unit: "pt", format: "a4" });
 
   const instituteName =
-    settingsData?.instituteName || settingsData?.name || "GuruPay Institute";
+    settingsData?.instituteName || settingsData?.name || "FeeSync Institute";
   const instituteAddress = settingsData?.address || "";
   const institutePhone = settingsData?.phone || "";
 
@@ -106,7 +106,7 @@ export function generateReceiptPDF(studentData = {}, paymentData = {}, settingsD
   y += 16;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("This is a system-generated receipt from GuruPay Pro.", left, y);
+  doc.text("This is a system-generated receipt from FeeSync – Smart Fee Management.", left, y);
 
   doc.save(fileName);
 
