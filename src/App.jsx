@@ -110,7 +110,7 @@ useEffect(() => {
     try {
       const { data: { session }, error: sessionError } = await withTimeout(
         supabase.auth.getSession(),
-        20000,
+        45000,
         'Auth session check timed out'
       )
       if (sessionError) throw sessionError
@@ -130,11 +130,9 @@ useEffect(() => {
       if (disposed) return
 
       // A timeout during bootstrap should not hard-block the app with a fatal screen.
-      // Fallback to logged-out state so user can still access Login.
+      // Do not force logout here; auth listener may still hydrate session shortly.
       if (isTimeoutError(e)) {
-        console.warn('Auth bootstrap timed out, falling back to logged-out state')
-        setUser(null)
-        setAuthProfile(null)
+        console.warn('Auth bootstrap timed out, keeping current auth state and waiting for auth listener')
         setError(null)
       } else {
         setError(e.message)
@@ -173,7 +171,7 @@ useEffect(() => {
       try {
         const { data: { session: latestSession } } = await withTimeout(
           supabase.auth.getSession(),
-          10000,
+          20000,
           'Auth state sync timed out'
         )
         if (disposed) return
