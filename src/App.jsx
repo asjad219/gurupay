@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from './supabase'
 import Login from './Login'
+import { ensureUserProfile, fetchOwnProfile } from './lib/authProfile'
 import FeeSyncSettings from './pages/Settings';
 import BatchDetails from './components/BatchDetails';
 import html2canvas from "html2canvas";
@@ -40,6 +41,7 @@ async function clearRuntimeCaches() {
 // Wrap your whole app with this auth check:
 export default function Root() {
 const [user, setUser] = useState(null)
+const [authProfile, setAuthProfile] = useState(null)
 const [loading, setLoading] = useState(true)
 const [error, setError] = useState(null)
 useEffect(() => {
@@ -86,6 +88,15 @@ useEffect(() => {
       if (sessionError) throw sessionError
       if (disposed) return
       setUser(session?.user ?? null)
+
+      if (session?.user) {
+        try {
+          const profile = await ensureUserProfile(session.user)
+          if (!disposed) setAuthProfile(profile)
+        } catch (profileError) {
+          console.error('Profile bootstrap error:', profileError)
+        }
+      }
     } catch (e) {
       console.error('Auth error:', e)
       if (disposed) return
@@ -102,12 +113,21 @@ useEffect(() => {
       // Ensure logout reflects immediately in UI (no refresh needed).
       if (event === "SIGNED_OUT") {
         setUser(null)
+        setAuthProfile(null)
         return
       }
 
       // For auth events that include a valid session, sync user instantly.
       if (session?.user) {
         setUser(session.user)
+
+        try {
+          const profile = await ensureUserProfile(session.user)
+          if (!disposed) setAuthProfile(profile)
+        } catch (profileError) {
+          console.error('Profile sync error:', profileError)
+        }
+
         return
       }
 
@@ -115,6 +135,15 @@ useEffect(() => {
       const { data: { session: latestSession } } = await supabase.auth.getSession()
       if (disposed) return
       setUser(latestSession?.user ?? null)
+
+      if (latestSession?.user) {
+        try {
+          const profile = await fetchOwnProfile(latestSession.user.id)
+          if (!disposed) setAuthProfile(profile)
+        } catch (profileError) {
+          console.error('Profile fallback fetch error:', profileError)
+        }
+      }
     }
   )
 
@@ -129,7 +158,7 @@ useEffect(() => {
 if (error) return <div style={{ padding: '2rem', color: 'red', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❌ Error: {error}</div>
 if (loading) return <div style={{ padding: '2rem', backgroundColor: '#fff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⏳ Loading...</div>
 if (!user) return <Login />
-return <FeeSyncPro user={user} /> // show app when logged in
+return <FeeSyncPro user={user} authProfile={authProfile} /> // show app when logged in
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -2015,7 +2044,7 @@ function BulkReminderModal({ unpaid, students, batches, selectedMonth, whatsappC
 }
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
-function FeeSyncPro({ user }) {
+function FeeSyncPro({ user, authProfile }) {
   const [tab, setTab] = useState("dashboard");
   const [batches, setBatches] = useState([]);
   const [students, setStudents] = useState([]);
@@ -2370,7 +2399,10 @@ function FeeSyncPro({ user }) {
           <div className="sidebar-footer">
             <div className="profile-card" style={{ marginBottom: 8 }}>
               <div className="avatar">{profile.name[0]}</div>
-              <div><div className="profile-name">{profile.name.split(" ").slice(0, 2).join(" ")}</div><div className="profile-plan">PRO</div></div>
+              <div>
+                <div className="profile-name">{profile.name.split(" ").slice(0, 2).join(" ")}</div>
+                <div className="profile-plan">PRO{authProfile?.phone ? ` • ${authProfile.phone}` : ""}</div>
+              </div>
             </div>
             </div>
         </aside>

@@ -49,18 +49,17 @@ CREATE TABLE IF NOT EXISTS payments (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create profiles table
+-- Create profiles table (auth profile + optional business profile fields)
 CREATE TABLE IF NOT EXISTS profiles (
-  id TEXT PRIMARY KEY,
-  user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT,
+  phone TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   gstin TEXT,
   address TEXT,
-  phone TEXT,
   email TEXT,
-  upi_id TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  upi_id TEXT
 );
 
 -- Create settings table
@@ -103,10 +102,14 @@ CREATE POLICY "Users can update their own payments" ON payments FOR UPDATE USING
 CREATE POLICY "Users can delete their own payments" ON payments FOR DELETE USING (auth.uid() = user_id);
 
 -- Create policies for profiles
-CREATE POLICY "Users can select their own profile" ON profiles FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own profile" ON profiles FOR DELETE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can select their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can delete their own profile" ON profiles;
+
+CREATE POLICY "Users can select their own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 -- Create policies for settings
 CREATE POLICY "Users can select their own settings" ON settings FOR SELECT USING (auth.uid() = user_id);

@@ -193,7 +193,7 @@ export async function fetchProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('user_id', uuid)
+    .eq('id', uuid)
     .single();
   
   if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
@@ -210,21 +210,21 @@ export async function saveProfile(userId, profile) {
   const { data: existing } = await supabase
     .from('profiles')
     .select('id')
-    .eq('user_id', uuid)
+    .eq('id', uuid)
     .single();
   
   if (existing) {
     const { data, error } = await supabase
       .from('profiles')
       .update({ ...profile, updated_at: new Date().toISOString() })
-      .eq('user_id', uuid)
+      .eq('id', uuid)
       .select()
       .single();
     return { data, error };
   } else {
     const { data, error } = await supabase
       .from('profiles')
-      .insert([{ ...profile, user_id: uuid }])
+      .insert([{ ...profile, id: uuid }])
       .select()
       .single();
     return { data, error };
