@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from './supabase'
+import { supabase, isSupabaseConfigured } from './supabase'
 import Login from './Login'
 import { ensureUserProfile, fetchOwnProfile } from './lib/authProfile'
 import FeeSyncSettings from './pages/Settings';
@@ -44,6 +44,15 @@ const [user, setUser] = useState(null)
 const [authProfile, setAuthProfile] = useState(null)
 const [loading, setLoading] = useState(true)
 const [error, setError] = useState(null)
+
+const withTimeout = (promise, ms = 10000, message = 'Request timed out') =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(message)), ms)
+    }),
+  ])
+
 useEffect(() => {
   let disposed = false
 
@@ -82,9 +91,23 @@ useEffect(() => {
   window.addEventListener("focus", onWindowFocus)
   document.addEventListener("visibilitychange", onVisibilityChange);
 
+  if (!isSupabaseConfigured) {
+    setLoading(false)
+    return () => {
+      disposed = true
+      clearInterval(versionTimer)
+      window.removeEventListener("focus", onWindowFocus)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+    }
+  }
+
   ;(async () => {
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      const { data: { session }, error: sessionError } = await withTimeout(
+        supabase.auth.getSession(),
+        12000,
+        'Auth session check timed out'
+      )
       if (sessionError) throw sessionError
       if (disposed) return
       setUser(session?.user ?? null)
