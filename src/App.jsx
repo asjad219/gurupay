@@ -15,8 +15,31 @@ import {
 
 const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
 const VERSION_STORAGE_KEY = "gp_app_build_id";
+const MAX_VERSION_CHECK_FAILURES = 3;
+
+function isRecoverableNetworkError(error) {
+  const msg = String(error?.message || "").toLowerCase();
+  return (
+    msg.includes("timed out") ||
+    msg.includes("failed to fetch") ||
+    msg.includes("network") ||
+    msg.includes("name_not_resolved") ||
+    msg.includes("load failed")
+  );
+}
 
 async function fetchBuildVersion() {
+  // Skip in contexts where a network fetch to version file is not reliable.
+  if (typeof window !== "undefined") {
+    const protocol = window.location?.protocol;
+    if (protocol && !protocol.startsWith("http")) {
+      return null;
+    }
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return null;
+    }
+  }
+
   const response = await fetch(`/version.json?t=${Date.now()}`, {
     cache: "no-store",
     headers: {
@@ -60,12 +83,18 @@ const isTimeoutError = (err) => {
 
 useEffect(() => {
   let disposed = false
+  let versionCheckFailures = 0
+  let versionChecksDisabled = false
 
   const checkForNewDeployment = async () => {
+    if (versionChecksDisabled || disposed) return
+
     try {
       const versionInfo = await fetchBuildVersion()
       const nextBuildId = versionInfo?.buildId
       if (!nextBuildId || disposed) return
+
+      versionCheckFailures = 0
 
       const knownBuildId = localStorage.getItem(VERSION_STORAGE_KEY)
 
@@ -79,8 +108,12 @@ useEffect(() => {
         await clearRuntimeCaches()
         window.location.reload()
       }
-    } catch {
+    } catch (err) {
       // Silent fail: deployment check should never block app usage.
+      versionCheckFailures += 1
+      if (versionCheckFailures >= MAX_VERSION_CHECK_FAILURES && isRecoverableNetworkError(err)) {
+        versionChecksDisabled = true
+      }
     }
   }
 
@@ -126,12 +159,14 @@ useEffect(() => {
         }
       }
     } catch (e) {
-      console.error('Auth error:', e)
+      if (!isRecoverableNetworkError(e)) {
+        console.error('Auth error:', e)
+      }
       if (disposed) return
 
       // A timeout during bootstrap should not hard-block the app with a fatal screen.
       // Do not force logout here; auth listener may still hydrate session shortly.
-      if (isTimeoutError(e)) {
+      if (isTimeoutError(e) || isRecoverableNetworkError(e)) {
         console.warn('Auth bootstrap timed out, keeping current auth state and waiting for auth listener')
         setError(null)
       } else {
@@ -186,7 +221,9 @@ useEffect(() => {
           }
         }
       } catch (syncError) {
-        console.error('Auth state sync error:', syncError)
+        if (!isRecoverableNetworkError(syncError)) {
+          console.error('Auth state sync error:', syncError)
+        }
       }
     }
   )
