@@ -16,6 +16,8 @@ import {
 const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
 const VERSION_STORAGE_KEY = "gp_app_build_id";
 const MAX_VERSION_CHECK_FAILURES = 3;
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 8000;
+const AUTH_SYNC_TIMEOUT_MS = 6000;
 
 function isRecoverableNetworkError(error) {
   const msg = String(error?.message || "").toLowerCase();
@@ -94,6 +96,9 @@ useEffect(() => {
   let disposed = false
   let versionCheckFailures = 0
   let versionChecksDisabled = false
+  const bootstrapFallbackTimer = setTimeout(() => {
+    if (!disposed) setLoading(false)
+  }, 1500)
 
   const checkForNewDeployment = async () => {
     if (versionChecksDisabled || disposed) return
@@ -142,6 +147,7 @@ useEffect(() => {
     setLoading(false)
     return () => {
       disposed = true
+      clearTimeout(bootstrapFallbackTimer)
       clearInterval(versionTimer)
       window.removeEventListener("focus", onWindowFocus)
       document.removeEventListener("visibilitychange", onVisibilityChange)
@@ -152,20 +158,25 @@ useEffect(() => {
     try {
       const { data: { session }, error: sessionError } = await withTimeout(
         supabase.auth.getSession(),
-        45000,
+        AUTH_BOOTSTRAP_TIMEOUT_MS,
         'Auth session check timed out'
       )
       if (sessionError) throw sessionError
       if (disposed) return
       setUser(session?.user ?? null)
 
+      // Do not block initial app paint on profile bootstrap.
+      setLoading(false)
+
       if (session?.user) {
-        try {
-          const profile = await ensureUserProfile(session.user)
-          if (!disposed) setAuthProfile(profile)
-        } catch (profileError) {
-          console.error('Profile bootstrap error:', profileError)
-        }
+        ;(async () => {
+          try {
+            const profile = await ensureUserProfile(session.user)
+            if (!disposed) setAuthProfile(profile)
+          } catch (profileError) {
+            console.error('Profile bootstrap error:', profileError)
+          }
+        })()
       }
     } catch (e) {
       if (!isRecoverableNetworkError(e) && !isRecoverableAuthLockError(e)) {
@@ -181,6 +192,9 @@ useEffect(() => {
       } else {
         setError(e.message)
       }
+
+      // Keep app usable even if bootstrap auth query fails.
+      setLoading(false)
     } finally {
       if (disposed) return
       setLoading(false)
@@ -215,7 +229,7 @@ useEffect(() => {
       try {
         const { data: { session: latestSession } } = await withTimeout(
           supabase.auth.getSession(),
-          20000,
+          AUTH_SYNC_TIMEOUT_MS,
           'Auth state sync timed out'
         )
         if (disposed) return
@@ -230,7 +244,7 @@ useEffect(() => {
           }
         }
       } catch (syncError) {
-        if (!isRecoverableNetworkError(syncError)) {
+        if (!isRecoverableNetworkError(syncError) && !isRecoverableAuthLockError(syncError)) {
           console.error('Auth state sync error:', syncError)
         }
       }
@@ -239,6 +253,7 @@ useEffect(() => {
 
   return () => {
     disposed = true
+    clearTimeout(bootstrapFallbackTimer)
     clearInterval(versionTimer)
     window.removeEventListener("focus", onWindowFocus)
     document.removeEventListener("visibilitychange", onVisibilityChange)
