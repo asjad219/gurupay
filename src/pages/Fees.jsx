@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import ReceiptButton from "../components/fees/ReceiptButton";
+import SetPaymentDueDateModal from "../components/modals/SetPaymentDueDateModal";
+import BulkMarkPaidModal from "../components/modals/BulkMarkPaidModal";
 
 const monthKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -45,6 +47,57 @@ const I = {
   Undo: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>,
 };
 
+
+// ─── Mark Paid Modal Component ────────────────────────────────────
+function MarkPaidModalContent({ student, batch, payment, onSave, onClose }) {
+  const [lateFee, setLateFee] = useState(payment?.lateFee || 0);
+  const [paidOn, setPaidOn] = useState(payment?.paidOn || new Date().toISOString().split("T")[0]);
+  const [notes, setNotes] = useState(payment?.notes || "");
+  const base = batch.fee - (student.discount || 0);
+  const gst = Math.round(base * batch.gstRate / 100);
+  const amount = payment?.amount || (base + gst);
+  const total = amount + (+lateFee || 0);
+
+  const handleSave = () => {
+    if (!paidOn) {
+      alert("Please select a payment date");
+      return;
+    }
+    onSave(payment || { id: Math.random().toString(36).slice(2, 9), studentId: student.id }, {
+      paidOn,
+      lateFee: +lateFee || 0,
+      notes,
+      amount,
+    });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+        <div className="modal-header">
+          <div><div className="modal-title">✅ Mark as Paid</div><div className="modal-subtitle">{student.name} · {batch.name}</div></div>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div style={{ background: "var(--bg3)", borderRadius: "var(--radius-sm)", padding: "12px 14px", marginBottom: 14, fontSize: 13 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "var(--text3)" }}>Base fee</span><span style={{ fontWeight: 600 }}>₹{base.toLocaleString("en-IN")}</span></div>
+            {gst > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "var(--text3)" }}>GST ({batch.gstRate}%)</span><span style={{ fontWeight: 600 }}>₹{gst.toLocaleString("en-IN")}</span></div>}
+            {lateFee > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "var(--red)" }}>Late fee</span><span style={{ color: "var(--red)", fontWeight: 600 }}>₹{(+lateFee).toLocaleString("en-IN")}</span></div>}
+            <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid var(--border)", paddingTop: 8, marginTop: 4 }}><span style={{ fontWeight: 700 }}>Total</span><span style={{ fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-display)", fontSize: 16 }}>₹{total.toLocaleString("en-IN")}</span></div>
+          </div>
+          <div className="input-group"><label className="input-label">Payment Date</label><input type="date" className="input" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} /></div>
+          <div className="input-group"><label className="input-label">Late Fee (if any)</label><input type="number" className="input" value={lateFee} onChange={(e) => setLateFee(e.target.value)} placeholder="0" min="0" /></div>
+          <div className="input-group"><label className="input-label">Notes</label><textarea className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Cheque #1234, Online transfer..." /></div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={handleSave}>Mark Paid</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Fees() {
   const { state, dispatch } = useApp();
   const { batches, students, payments, businessProfile: profile, settings } = state;
@@ -54,6 +107,7 @@ export default function Fees() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(new Set());
+  const [modal, setModal] = useState(null);
 
   const _getStudent = (id) => students.find((s) => s.id === id);
   const getBatch = (id) => batches.find((b) => b.id === id);
@@ -79,6 +133,96 @@ export default function Fees() {
   const handleUndo = async (payment) => {
     const np = payments.map((p) => p.id === payment.id ? { ...p, status: "unpaid", paidOn: null, lateFee: 0 } : p);
     setPayments(np);
+  };
+
+  const handleGenerateFees = () => {
+    setModal({ type: "generateFees" });
+  };
+
+  const handleGenerateFeesConfirm = () => {
+    const toGenerate = students.filter((s) => {
+      const p = getPayment(s.id, selectedMonth);
+      return !p;
+    });
+
+    if (toGenerate.length === 0) {
+      alert("All students already have fees generated for this month");
+      setModal(null);
+      return;
+    }
+
+    const newPayments = toGenerate.map((s) => {
+      const b = getBatch(s.batchId);
+      const base = b.fee - (s.discount || 0);
+      const gstAmount = Math.round(base * (b.gstRate / 100));
+      return {
+        id: Math.random().toString(36).slice(2, 9),
+        studentId: s.id,
+        month: selectedMonth,
+        status: "unpaid",
+        amount: base + gstAmount,
+        lateFee: 0,
+        notes: "",
+      };
+    });
+
+    const updatedPayments = [...payments, ...newPayments];
+    setPayments(updatedPayments);
+    setModal(null);
+  };
+
+  const handleMarkPaidClick = (student, payment) => {
+    const b = getBatch(student.batchId);
+    setModal({ type: "markPaid", data: { student, batch: b, payment } });
+  };
+
+  const handleMarkPaidSave = (payment, { paidOn, lateFee, notes, amount }) => {
+    const updatedPayment = {
+      ...payment,
+      status: "paid",
+      paidOn,
+      paidAt: new Date().toISOString(),
+      lateFee,
+      notes,
+      amount,
+    };
+    const np = payments.map((p) => p.id === payment.id ? updatedPayment : p);
+    setPayments(np);
+    setModal(null);
+  };
+
+  const handleBulkMarkPaid = () => {
+    if (selected.size === 0) {
+      alert("Please select payments to mark as paid");
+      return;
+    }
+    const selectedPayments = unpaid.filter((p) => selected.has(p.id));
+    setModal({ type: "bulkMarkPaid", data: { payments: selectedPayments } });
+  };
+
+  const handleBulkMarkPaidConfirm = (selectedPayments, paidDate) => {
+    const np = payments.map((p) =>
+      selectedPayments.some((sp) => sp.id === p.id)
+        ? { ...p, status: "paid", paidOn: paidDate, paidAt: new Date().toISOString() }
+        : p
+    );
+    setPayments(np);
+    setSelected(new Set());
+    setModal(null);
+  };
+
+  const handleSetDueDate = (payment) => {
+    setModal({ type: "setDueDate", data: { payment } });
+  };
+
+  const handleSetDueDateSave = (updatedPayment) => {
+    const np = payments.map((p) => p.id === updatedPayment.id ? updatedPayment : p);
+    setPayments(np);
+    setModal(null);
+  };
+
+  const closeModal = () => {
+    setModal(null);
   };
 
   const toggleSelect = (paymentId) => {
@@ -114,13 +258,66 @@ export default function Fees() {
 
   return (
     <div>
+      {/* Modals */}
+      {modal?.type === "generateFees" && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <div className="modal-header">
+              <div><div className="modal-title">⚡ Generate Fees</div></div>
+            </div>
+            <div className="modal-body">
+              <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>⚡</div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>Generate for {monthLabel(selectedMonth)}</div>
+                <div style={{ fontSize: 13, color: "var(--text3)", lineHeight: 1.6 }}>
+                  {students.filter(s => !getPayment(s.id, selectedMonth)).length} students don't have fees yet
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleGenerateFeesConfirm}>Generate</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {modal?.type === "markPaid" && (
+        <MarkPaidModalContent
+          student={modal.data.student}
+          batch={modal.data.batch}
+          payment={modal.data.payment}
+          onSave={handleMarkPaidSave}
+          onClose={closeModal}
+        />
+      )}
+      
+      {modal?.type === "setDueDate" && (
+        <SetPaymentDueDateModal
+          payment={modal.data.payment}
+          onSave={handleSetDueDateSave}
+          onClose={closeModal}
+        />
+      )}
+      
+      {modal?.type === "bulkMarkPaid" && (
+        <BulkMarkPaidModal
+          payments={modal.data.payments || []}
+          students={students}
+          batches={batches}
+          selectedMonth={selectedMonth}
+          onSave={handleBulkMarkPaidConfirm}
+          onClose={closeModal}
+        />
+      )}
+
       <div className="toolbar">
         <select className="month-sel" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
           {months6.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
         </select>
-        <button className="btn btn-secondary btn-sm" onClick={() => {}}>⚡ Generate</button>
+        <button className="btn btn-secondary btn-sm" onClick={handleGenerateFees}>⚡ Generate</button>
         {selected.size > 0 && (
-          <button className="btn btn-primary btn-sm" onClick={() => {}} style={{background: "var(--gradient-primary)", color: "white"}}>
+          <button className="btn btn-primary btn-sm" onClick={handleBulkMarkPaid} style={{background: "var(--gradient-primary)", color: "white"}}>
             ✓ Mark {selected.size} as Paid
           </button>
         )}
@@ -188,9 +385,9 @@ export default function Fees() {
                         />
                       )}
                       {p?.status === "paid" && <button className="btn btn-danger btn-sm" onClick={() => handleUndo(p)}><I.Undo /></button>}
-                      {p?.status === "paid" && <button className="btn btn-secondary btn-sm" onClick={() => {}}><I.Receipt /> Invoice</button>}
-                      {p?.status === "unpaid" && <button className="btn btn-secondary btn-sm" onClick={() => {}}>Mark Paid</button>}
-                      {p?.status === "unpaid" && <button className="btn btn-secondary btn-sm" onClick={() => {}}><I.Check /> Due</button>}
+                      {p?.status === "paid" && <button className="btn btn-secondary btn-sm" onClick={() => { /* Built-in receipt shown above */ }}><I.Receipt /> Invoice</button>}
+                      {p?.status === "unpaid" && <button className="btn btn-secondary btn-sm" onClick={() => handleMarkPaidClick(s, p)}>Mark Paid</button>}
+                      {p?.status === "unpaid" && <button className="btn btn-secondary btn-sm" onClick={() => handleSetDueDate(p)}><I.Check /> Due</button>}
                     </div></td>
                   </tr>
                 );
