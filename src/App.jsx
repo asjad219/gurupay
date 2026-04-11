@@ -15,8 +15,9 @@ import {
 const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
 const VERSION_STORAGE_KEY = "gp_app_build_id";
 const MAX_VERSION_CHECK_FAILURES = 3;
-const AUTH_BOOTSTRAP_TIMEOUT_MS = 8000;
-const AUTH_SYNC_TIMEOUT_MS = 6000;
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 15000; // Increased from 8s to 15s for slow connections
+const AUTH_SYNC_TIMEOUT_MS = 10000; // Increased from 6s to 10s
+const AUTH_CACHE_KEY = "gp_auth_cache";
 
 function isRecoverableNetworkError(error) {
   const msg = String(error?.message || "").toLowerCase();
@@ -155,48 +156,81 @@ useEffect(() => {
 
   ;(async () => {
     try {
-      const { data: { session }, error: sessionError } = await withTimeout(
-        supabase.auth.getSession(),
-        AUTH_BOOTSTRAP_TIMEOUT_MS,
-        'Auth session check timed out'
-      )
-      if (sessionError) throw sessionError
-      if (disposed) return
-      setUser(session?.user ?? null)
+      // Try to get session with timeout
+      let session = null;
+      let sessionError = null;
+      
+      try {
+        const result = await withTimeout(
+          supabase.auth.getSession(),
+          AUTH_BOOTSTRAP_TIMEOUT_MS,
+          'Auth session check timed out'
+        );
+        session = result?.data?.session;
+        sessionError = result?.error;
+      } catch (timeoutError) {
+        // On timeout, try to restore from cache as fallback
+        console.warn('Auth bootstrap timeout, attempting cache fallback:', timeoutError.message);
+        try {
+          const cached = localStorage.getItem(AUTH_CACHE_KEY);
+          if (cached) {
+            const { user: cachedUser } = JSON.parse(cached);
+            if (cachedUser) {
+              session = { user: cachedUser };
+            }
+          }
+        } catch (cacheError) {
+          // Silently ignore cache errors
+        }
+      }
+      
+      if (sessionError) throw sessionError;
+      if (disposed) return;
+      
+      // Cache the session for offline support
+      if (session?.user) {
+        try {
+          localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify({ user: session.user }));
+        } catch (e) {
+          // Silently ignore storage errors
+        }
+      }
+      
+      setUser(session?.user ?? null);
 
       // Do not block initial app paint on profile bootstrap.
-      setLoading(false)
+      setLoading(false);
 
       if (session?.user) {
         ;(async () => {
           try {
-            const profile = await ensureUserProfile(session.user)
-            if (!disposed) setAuthProfile(profile)
+            const profile = await ensureUserProfile(session.user);
+            if (!disposed) setAuthProfile(profile);
           } catch (profileError) {
-            console.error('Profile bootstrap error:', profileError)
+            console.error('Profile bootstrap error:', profileError);
           }
-        })()
+        })();
       }
     } catch (e) {
       if (!isRecoverableNetworkError(e) && !isRecoverableAuthLockError(e)) {
-        console.error('Auth error:', e)
+        console.error('Auth error:', e);
       }
-      if (disposed) return
+      if (disposed) return;
 
       // A timeout during bootstrap should not hard-block the app with a fatal screen.
       // Do not force logout here; auth listener may still hydrate session shortly.
       if (isTimeoutError(e) || isRecoverableNetworkError(e) || isRecoverableAuthLockError(e)) {
-        console.warn('Auth bootstrap timed out, keeping current auth state and waiting for auth listener')
-        setError(null)
+        console.warn('Auth bootstrap timed out, keeping current auth state and waiting for auth listener');
+        setError(null);
       } else {
-        setError(e.message)
+        setError(e.message);
       }
 
       // Keep app usable even if bootstrap auth query fails.
-      setLoading(false)
+      setLoading(false);
     } finally {
-      if (disposed) return
-      setLoading(false)
+      if (disposed) return;
+      setLoading(false);
     }
   })()
   const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -213,6 +247,13 @@ useEffect(() => {
       // For auth events that include a valid session, sync user instantly.
       if (session?.user) {
         setUser(session.user)
+        
+        // Cache the user session
+        try {
+          localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify({ user: session.user }))
+        } catch (e) {
+          // Silently ignore storage errors
+        }
 
         try {
           const profile = await ensureUserProfile(session.user)
@@ -233,6 +274,15 @@ useEffect(() => {
         )
         if (disposed) return
         setUser(latestSession?.user ?? null)
+        
+        // Cache the user session
+        if (latestSession?.user) {
+          try {
+            localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify({ user: latestSession.user }))
+          } catch (e) {
+            // Silently ignore storage errors
+          }
+        }
 
         if (latestSession?.user) {
           try {
@@ -243,7 +293,20 @@ useEffect(() => {
           }
         }
       } catch (syncError) {
-        if (!isRecoverableNetworkError(syncError) && !isRecoverableAuthLockError(syncError)) {
+        // On sync timeout, use cache as fallback
+        if (isTimeoutError(syncError)) {
+          try {
+            const cached = localStorage.getItem(AUTH_CACHE_KEY)
+            if (cached) {
+              const { user: cachedUser } = JSON.parse(cached)
+              if (cachedUser && !disposed) {
+                setUser(cachedUser)
+              }
+            }
+          } catch (cacheError) {
+            // Silently ignore cache errors
+          }
+        } else if (!isRecoverableNetworkError(syncError) && !isRecoverableAuthLockError(syncError)) {
           console.error('Auth state sync error:', syncError)
         }
       }
