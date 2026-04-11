@@ -198,6 +198,8 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      <div className="card">
         <div className="card-header"><div><div className="card-title">Recent Payments</div></div></div>
         {paid.length === 0 ? <div className="empty" style={{ padding: 24 }}><div className="empty-icon">💸</div><div className="empty-title">No payments yet this month</div></div> : (
           <div className="table-wrap">
