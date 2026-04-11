@@ -2232,6 +2232,7 @@ function FeeSyncPro({ user, authProfile }) {
     (async () => {
       try {
         const userId = user?.id;
+        const FETCH_TIMEOUT_MS = 5000; // 5 second timeout for dashboard loading
 
         // Defaults/fallbacks to keep dashboard usable even when network is unstable.
         let supabaseBatches = [];
@@ -2242,12 +2243,18 @@ function FeeSyncPro({ user, authProfile }) {
 
         if (userId) {
           try {
-            [supabaseBatches, supabaseStudents, supabasePayments, supabaseProfile, supabaseSettings] = await Promise.all([
-              fetchBatches(userId).catch(() => []),
-              fetchStudents(userId).catch(() => []),
-              fetchPayments(userId).catch(() => []),
-              fetchProfile(userId).catch(() => null),
-              fetchSettings(userId).catch(() => null),
+            // Wrap Promise.all in a timeout to prevent dashboard from getting stuck
+            [supabaseBatches, supabaseStudents, supabasePayments, supabaseProfile, supabaseSettings] = await Promise.race([
+              Promise.all([
+                fetchBatches(userId).catch(() => []),
+                fetchStudents(userId).catch(() => []),
+                fetchPayments(userId).catch(() => []),
+                fetchProfile(userId).catch(() => null),
+                fetchSettings(userId).catch(() => null),
+              ]),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Dashboard data fetch timed out')), FETCH_TIMEOUT_MS)
+              )
             ]);
           } catch (supabaseLoadError) {
             console.warn("Supabase data load failed, falling back to local data:", supabaseLoadError);
