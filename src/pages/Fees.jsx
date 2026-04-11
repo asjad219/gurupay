@@ -7,10 +7,17 @@ const monthKey = (d = new Date()) =>
 const monthLabel = (k) => {
   if (!k) return "";
   const [y, m] = k.split("-");
-  return new Date(+y, +m - 1).toLocaleString("en-IN", { month: "long", year: "numeric" });
+  return new Date(+y, +m - 1).toLocaleString("en-IN", {
+    month: "long",
+    year: "numeric",
+  });
 };
 const fmtINR = (n) =>
-  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
 const months6 = Array.from({ length: 6 }, (_, i) => {
@@ -18,8 +25,15 @@ const months6 = Array.from({ length: 6 }, (_, i) => {
   d.setMonth(d.getMonth() - i);
   return monthKey(d);
 });
-const KEYS = { payments: "gp2_p" };
-async function dbSet(_k, _v) {}
+
+const daysUntilDue = (dueDate) => {
+  if (!dueDate) return null;
+  const now = new Date();
+  const due = new Date(dueDate);
+  const diff = due - now;
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return days;
+};
 
 const I = {
   Search: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
@@ -35,12 +49,11 @@ export default function Fees() {
   const { state, dispatch } = useApp();
   const { batches, students, payments, businessProfile: profile, settings } = state;
   const setPayments = (np) => dispatch({ type: "SET_PAYMENTS", payload: np });
-  const toast = () => {};
-  const openModal = () => {};
   const [selectedMonth, setSelectedMonth] = useState(monthKey());
   const [filterBatch, setFilterBatch] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(new Set());
 
   const _getStudent = (id) => students.find((s) => s.id === id);
   const getBatch = (id) => batches.find((b) => b.id === id);
@@ -66,15 +79,33 @@ export default function Fees() {
   const handleUndo = async (payment) => {
     const np = payments.map((p) => p.id === payment.id ? { ...p, status: "unpaid", paidOn: null, lateFee: 0 } : p);
     setPayments(np);
-    await dbSet(KEYS.payments, np);
+  };
+
+  const toggleSelect = (paymentId) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(paymentId)) {
+      newSelected.delete(paymentId);
+    } else {
+      newSelected.add(paymentId);
+    }
+    setSelected(newSelected);
+  };
+
+  const selectAll = () => {
+    if (selected.size === unpaid.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(unpaid.map((p) => p.id)));
+    }
   };
 
   const exportCSV = () => {
-    const rows = [["Name", "Phone", "Batch", "Month", "Amount", "Status", "Paid On", "Late Fee", "Notes"]];
+    const rows = [["Name", "Phone", "Batch", "Month", "Amount", "Status", "Paid On", "Due Date", "Days Until", "Late Fee", "Notes"]];
     filtered.forEach((s) => {
       const b = getBatch(s.batchId);
       const p = getPayment(s.id, selectedMonth);
-      rows.push([s.name, s.phone, b?.name, monthLabel(selectedMonth), p ? fmtINR(p.amount) : "—", p?.status || "not generated", p?.paidOn || "—", p?.lateFee || 0, p?.notes || ""]);
+      const days = daysUntilDue(p?.dueDate);
+      rows.push([s.name, s.phone, b?.name, monthLabel(selectedMonth), p ? fmtINR(p.amount) : "—", p?.status || "not generated", p?.paidOn || "—", p?.dueDate || "—", days !== null ? days : "—", p?.lateFee || 0, p?.notes || ""]);
     });
     const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -87,7 +118,12 @@ export default function Fees() {
         <select className="month-sel" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
           {months6.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
         </select>
-        <button className="btn btn-secondary btn-sm" onClick={() => openModal("generateFees")}>⚡ Generate</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => {}}>⚡ Generate</button>
+        {selected.size > 0 && (
+          <button className="btn btn-primary btn-sm" onClick={() => {}} style={{background: "var(--gradient-primary)", color: "white"}}>
+            ✓ Mark {selected.size} as Paid
+          </button>
+        )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button className="btn btn-secondary btn-sm" onClick={exportCSV}><I.Download /> Export CSV</button>
         </div>
@@ -98,19 +134,42 @@ export default function Fees() {
         </div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Student</th><th>Batch</th><th>Amount</th><th>Status</th><th>Paid On</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>
+            <thead><tr><th style={{width: 32}}><input type="checkbox" checked={selected.size === unpaid.length && unpaid.length > 0} onChange={selectAll} /></th><th>Student</th><th>Batch</th><th>Amount</th><th>Status</th><th>Due Date</th><th>Paid On</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>
             <tbody>
               {filtered.map((s) => {
                 const b = getBatch(s.batchId);
                 if (!b) return null;
                 const p = getPayment(s.id, selectedMonth);
                 const amt = p ? p.amount : b.fee - (s.discount || 0) + Math.round((b.fee - (s.discount || 0)) * b.gstRate / 100);
+                const days = daysUntilDue(p?.dueDate);
+                const isSelected = p && selected.has(p.id);
+                const isUnpaid = p?.status === "unpaid";
+
                 return (
-                  <tr key={s.id}>
+                  <tr key={s.id} style={{background: isSelected ? "linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%)" : "transparent"}}>
+                    <td style={{width: 32}}>
+                      {isUnpaid && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(p.id)}
+                        />
+                      )}
+                    </td>
                     <td><div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div></td>
                     <td>{b.name}</td>
                     <td>{fmtINR(amt + (p?.lateFee || 0))}</td>
                     <td>{p?.status || "not generated"}</td>
+                    <td>
+                      <div style={{fontSize: 12}}>
+                        {p?.dueDate ? fmtDate(p.dueDate) : "—"}
+                        {p?.dueDate && days !== null && (
+                          <div style={{fontSize: 11, color: days > 0 ? "var(--text4)" : days === 0 ? "var(--amber)" : "var(--red)"}}>
+                            {days > 0 ? `in ${days}d` : days === 0 ? "Today" : `${Math.abs(days)}d overdue`}
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td>{p?.status === "paid" ? fmtDate(p.paidOn) : "—"}</td>
                     <td><div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
                       {p?.status === "paid" && (
@@ -129,7 +188,9 @@ export default function Fees() {
                         />
                       )}
                       {p?.status === "paid" && <button className="btn btn-danger btn-sm" onClick={() => handleUndo(p)}><I.Undo /></button>}
-                      {p?.status === "paid" && <button className="btn btn-secondary btn-sm" onClick={() => openModal("receipt", { student: s, batch: b, payment: p })}><I.Receipt /></button>}
+                      {p?.status === "paid" && <button className="btn btn-secondary btn-sm" onClick={() => {}}><I.Receipt /> Invoice</button>}
+                      {p?.status === "unpaid" && <button className="btn btn-secondary btn-sm" onClick={() => {}}>Mark Paid</button>}
+                      {p?.status === "unpaid" && <button className="btn btn-secondary btn-sm" onClick={() => {}}><I.Check /> Due</button>}
                     </div></td>
                   </tr>
                 );

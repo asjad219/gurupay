@@ -45,6 +45,28 @@ CREATE TABLE IF NOT EXISTS payments (
   paid_at TIMESTAMPTZ,
   late_fee INTEGER DEFAULT 0,
   notes TEXT,
+  due_date DATE,
+  parent_payment_id TEXT REFERENCES payments(id) ON DELETE CASCADE,
+  reminder_scheduled_at TIMESTAMPTZ,
+  reminder_sent BOOLEAN DEFAULT false,
+  reminder_sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create installments table
+CREATE TABLE IF NOT EXISTS installments (
+  id TEXT PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  payment_id TEXT NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+  installment_number INTEGER NOT NULL,
+  amount INTEGER DEFAULT 0,
+  due_date DATE,
+  status TEXT DEFAULT 'unpaid',
+  paid_amount INTEGER DEFAULT 0,
+  paid_on DATE,
+  paid_at TIMESTAMPTZ,
+  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -187,6 +209,7 @@ END $$;
 ALTER TABLE batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE installments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
@@ -257,6 +280,29 @@ CREATE POLICY "Users can update their own payments"
 
 CREATE POLICY "Users can delete their own payments"
   ON payments FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Installments policies
+DROP POLICY IF EXISTS "Users can select their own installments" ON installments;
+DROP POLICY IF EXISTS "Users can insert their own installments" ON installments;
+DROP POLICY IF EXISTS "Users can update their own installments" ON installments;
+DROP POLICY IF EXISTS "Users can delete their own installments" ON installments;
+
+CREATE POLICY "Users can select their own installments"
+  ON installments FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own installments"
+  ON installments FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own installments"
+  ON installments FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own installments"
+  ON installments FOR DELETE
   USING (auth.uid() = user_id);
 
 -- Profiles policies

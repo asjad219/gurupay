@@ -7,6 +7,7 @@ const initialState = {
   batches: [],
   students: [],
   payments: [],
+  installments: [],
   businessProfile: {
     name: "",
     gstin: "",
@@ -70,6 +71,23 @@ function appReducer(state, action) {
         payments: state.payments.filter((p) => p.id !== action.payload),
       };
 
+    case "SET_INSTALLMENTS":
+      return { ...state, installments: action.payload };
+    case "ADD_INSTALLMENT":
+      return { ...state, installments: [...state.installments, action.payload] };
+    case "UPDATE_INSTALLMENT":
+      return {
+        ...state,
+        installments: state.installments.map((inst) =>
+          inst.id === action.payload.id ? action.payload : inst
+        ),
+      };
+    case "DELETE_INSTALLMENT":
+      return {
+        ...state,
+        installments: state.installments.filter((inst) => inst.id !== action.payload),
+      };
+
     case "SET_PROFILE":
       return {
         ...state,
@@ -88,6 +106,7 @@ function loadFromStorage() {
       batches: JSON.parse(localStorage.getItem(LS_KEYS.BATCHES) || "[]"),
       students: JSON.parse(localStorage.getItem(LS_KEYS.STUDENTS) || "[]"),
       payments: JSON.parse(localStorage.getItem(LS_KEYS.PAYMENTS) || "[]"),
+      installments: JSON.parse(localStorage.getItem(LS_KEYS.INSTALLMENTS) || "[]"),
       businessProfile: JSON.parse(
         localStorage.getItem(LS_KEYS.PROFILE) ||
           JSON.stringify(initialState.businessProfile)
@@ -114,6 +133,9 @@ export function AppProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(LS_KEYS.PAYMENTS, JSON.stringify(state.payments));
   }, [state.payments]);
+  useEffect(() => {
+    localStorage.setItem(LS_KEYS.INSTALLMENTS, JSON.stringify(state.installments));
+  }, [state.installments]);
   useEffect(() => {
     localStorage.setItem(LS_KEYS.PROFILE, JSON.stringify(state.businessProfile));
   }, [state.businessProfile]);

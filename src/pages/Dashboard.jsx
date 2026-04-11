@@ -77,6 +77,18 @@ export default function Dashboard() {
   const getStudent = (id) => students.find((s) => s.id === id);
   const getBatch = (id) => batches.find((b) => b.id === id);
 
+  // Upcoming payments (next 7 days)
+  const today = new Date();
+  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const upcomingPayments = payments
+    .filter((p) => p.dueDate && p.status === "unpaid")
+    .filter((p) => {
+      const dueDate = new Date(p.dueDate);
+      return dueDate >= today && dueDate <= nextWeek;
+    })
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+    .slice(0, 5);
+
   return (
     <div>
       <div className="toolbar">
@@ -156,7 +168,36 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" style={{ marginBottom: 16, background: "linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%)", borderLeft: "4px solid var(--gradient-primary)" }}>
+        <div className="card-header">
+          <div><div className="card-title">📅 Upcoming Due Dates</div><div className="card-subtitle">Next 7 days</div></div>
+        </div>
+        {upcomingPayments.length === 0 ? (
+          <div style={{ padding: 20, textAlign: "center", color: "var(--text3)", fontSize: 13 }}>No payments due in the next 7 days</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 0 12px 0" }}>
+            {upcomingPayments.map((p) => {
+              const s = getStudent(p.studentId);
+              const b = s && getBatch(s.batchId);
+              const daysLeft = Math.ceil((new Date(p.dueDate) - today) / (1000 * 60 * 60 * 24));
+              if (!s || !b) return null;
+              return (
+                <div key={p.id} style={{ padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 20, minWidth: 24 }}>📌</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div>
+                    <div style={{ fontSize: 11, color: "var(--text4)" }}>{b.name}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--blue)" }}>{fmtINR(p.amount)}</div>
+                    <div style={{ fontSize: 11, color: daysLeft <= 2 ? "var(--amber)" : "var(--text4)" }}>in {daysLeft}d</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
         <div className="card-header"><div><div className="card-title">Recent Payments</div></div></div>
         {paid.length === 0 ? <div className="empty" style={{ padding: 24 }}><div className="empty-icon">💸</div><div className="empty-title">No payments yet this month</div></div> : (
           <div className="table-wrap">

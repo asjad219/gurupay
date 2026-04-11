@@ -11,6 +11,10 @@ import {
   fetchPayments, createPayment, updatePayment, deletePayment as deletePaymentFromDb,
   fetchProfile, saveProfile, fetchSettings, saveSettings
 } from './lib/database';
+import SetPaymentDueDateModal from './components/modals/SetPaymentDueDateModal';
+import SetInstallmentsModal from './components/modals/SetInstallmentsModal';
+import BulkMarkPaidModal from './components/modals/BulkMarkPaidModal';
+import ReminderSchedulerModal from './components/modals/ReminderSchedulerModal';
 
 const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
 const VERSION_STORAGE_KEY = "gp_app_build_id";
@@ -410,7 +414,7 @@ function normalizeWhatsAppConfig(config) {
 }
 
 // ─── Storage ──────────────────────────────────────────────────────────────────
-const KEYS = { batches: "gp2_b", students: "gp2_s", payments: "gp2_p", profile: "gp2_pr", theme: "gp2_th", features: "gp2_feat", whatsappConfig: "gp2_wa_cfg", uiSettings: "gp2_ui" };
+const KEYS = { batches: "gp2_b", students: "gp2_s", payments: "gp2_p", installments: "gp2_inst", profile: "gp2_pr", theme: "gp2_th", features: "gp2_feat", whatsappConfig: "gp2_wa_cfg", uiSettings: "gp2_ui" };
 async function dbGet(k, fallback) {
   try { const val = localStorage.getItem(k); return val ? JSON.parse(val) : fallback; }
   catch { return fallback; }
@@ -2211,6 +2215,7 @@ function FeeSyncPro({ user, authProfile }) {
   const [batches, setBatches] = useState([]);
   const [students, setStudents] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [installments, setInstallments] = useState([]);
   const [profile, setProfile] = useState(SEED_PROFILE);
   const [selectedMonth, setSelectedMonth] = useState(curMonth);
   const [loading, setLoading] = useState(true);
@@ -2530,6 +2535,120 @@ function FeeSyncPro({ user, authProfile }) {
     toast("Fee marked as paid!", { icon: "✅", onUndo: async () => { setPayments(prev); await dbSet(KEYS.payments, prev); } });
   };
 
+  // Set due date handler
+  const handleSetDueDate = async (payment) => {
+    const prev = [...payments];
+    const np = payments.map(p => p.id === payment.id ? payment : p);
+    setPayments(np); await dbSet(KEYS.payments, np);
+
+    // Also update in Supabase if user is logged in
+    if (user?.id) {
+      await updatePayment(user.id, payment).catch(console.error);
+    }
+
+    toast("Due date set!", { icon: "📅", onUndo: async () => { setPayments(prev); await dbSet(KEYS.payments, prev); } });
+  };
+
+  // Create installments handler
+  const handleCreateInstallments = async (parentPayment, newInstallments) => {
+    const prevPayments = [...payments];
+    const prevInstallments = [...installments];
+
+    // Mark parent payment as having installments
+    const updatedParent = { ...parentPayment, status: "split", parentPaymentId: parentPayment.id };
+    const np = payments.map(p => p.id === parentPayment.id ? updatedParent : p);
+
+    // Create installment payments
+    const installmentPayments = newInstallments.map((inst, idx) => ({
+      id: uid(),
+      studentId: parentPayment.studentId,
+      month: parentPayment.month,
+      status: "unpaid",
+      amount: inst.amount,
+      dueDate: inst.dueDate,
+      lateFee: 0,
+      notes: `Installment ${inst.installmentNumber}/${newInstallments.length}`,
+      parentPaymentId: parentPayment.id,
+    }));
+
+    // Add installment payments to main payments list
+    const npWithInstallments = [...np, ...installmentPayments];
+    const ni = [...installments, ...installmentPayments.map((ip, idx) => ({
+      id: uid(),
+      paymentId: ip.id,
+      installmentNumber: newInstallments[idx].installmentNumber,
+      amount: ip.amount,
+      dueDate: ip.dueDate,
+      status: "unpaid",
+      paidAmount: 0,
+    }))];
+
+    setPayments(npWithInstallments);
+    setInstallments(ni);
+    await dbSet(KEYS.payments, npWithInstallments);
+    await dbSet(KEYS.installments, ni);
+
+    // Also update in Supabase if user is logged in
+    if (user?.id) {
+      await updatePayment(user.id, updatedParent).catch(console.error);
+      for (const ip of installmentPayments) {
+        await createPayment(user.id, ip).catch(console.error);
+      }
+    }
+
+    toast(`Payment split into ${newInstallments.length} installments!`, { icon: "✅" });
+  };
+
+  // Bulk mark paid handler
+  const handleBulkMarkPaid = async (selectedPayments, paidDate) => {
+    const prevPayments = [...payments];
+    const paidAt = new Date().toISOString();
+    const np = payments.map(p =>
+      selectedPayments.some(sp => sp.id === p.id)
+        ? { ...p, status: "paid", paidOn: paidDate, paidAt }
+        : p
+    );
+
+    setPayments(np);
+    await dbSet(KEYS.payments, np);
+
+    // Also update in Supabase if user is logged in
+    if (user?.id) {
+      for (const payment of selectedPayments) {
+        const updated = { ...payment, status: "paid", paidOn: paidDate, paidAt };
+        await updatePayment(user.id, updated).catch(console.error);
+      }
+    }
+
+    toast(`${selectedPayments.length} payment${selectedPayments.length !== 1 ? 's' : ''} marked as paid!`, {
+      icon: "✅",
+      onUndo: async () => { setPayments(prevPayments); await dbSet(KEYS.payments, prevPayments); }
+    });
+  };
+
+  // Reminder scheduler handler
+  const handleReminderScheduled = async (payment, reminderConfig) => {
+    const prevPayments = [...payments];
+    const updatedPayment = {
+      ...payment,
+      reminderScheduledAt: reminderConfig.enabled ? new Date().toISOString() : null,
+      reminders: reminderConfig.reminders || []
+    };
+    const np = payments.map(p => p.id === payment.id ? updatedPayment : p);
+    setPayments(np);
+    await dbSet(KEYS.payments, np);
+
+    // Also update in Supabase if user is logged in
+    if (user?.id) {
+      await updatePayment(user.id, updatedPayment).catch(console.error);
+    }
+
+    toast(reminderConfig.enabled ? "Reminders scheduled!" : "Reminders disabled!", {
+      icon: reminderConfig.enabled ? "🔔" : "🔕",
+      onUndo: async () => { setPayments(prevPayments); await dbSet(KEYS.payments, prevPayments); }
+    });
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
@@ -2578,6 +2697,10 @@ function FeeSyncPro({ user, authProfile }) {
         const p = modal.data.payment || payments.find(pm => pm.studentId === modal.data.student.id && pm.month === selectedMonth);
         if (p) { const np = payments.map(pm => pm.id === p.id ? { ...pm, status: "waived", notes: reason, paidAt: pm.paidAt || new Date().toISOString() } : pm); setPayments(np); await dbSet(KEYS.payments, np); toast("Fee waived!", { icon: "🔵" }); }
       }} onClose={closeModal} />}
+      {modal?.type === "setDueDate" && <SetPaymentDueDateModal payment={modal.data.payment} onSave={handleSetDueDate} onClose={closeModal} />}
+      {modal?.type === "createInstallments" && <SetInstallmentsModal payment={modal.data.payment} student={modal.data.student} batch={modal.data.batch} onSave={handleCreateInstallments} onClose={closeModal} />}
+      {modal?.type === "bulkMarkPaid" && <BulkMarkPaidModal payments={modal.data.payments || []} students={students} batches={batches} selectedMonth={selectedMonth} onSave={handleBulkMarkPaid} onClose={closeModal} />}
+      {modal?.type === "reminderScheduler" && <ReminderSchedulerModal payment={modal.data.payment} student={modal.data.student} batch={modal.data.batch} onSave={handleReminderScheduled} onClose={closeModal} />}
 
       <ToastStack toasts={toasts} dismiss={dismiss} />
 

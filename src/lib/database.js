@@ -65,6 +65,11 @@ const mapPaymentFromDb = (row) => ({
   paidAt: row.paid_at,
   lateFee: row.late_fee ?? 0,
   notes: row.notes ?? '',
+  dueDate: row.due_date,
+  parentPaymentId: row.parent_payment_id,
+  reminderScheduledAt: row.reminder_scheduled_at,
+  reminderSent: row.reminder_sent ?? false,
+  reminderSentAt: row.reminder_sent_at,
 });
 
 const mapPaymentToDb = (payment, userId) => ({
@@ -78,6 +83,11 @@ const mapPaymentToDb = (payment, userId) => ({
   paid_at: payment.paidAt || null,
   late_fee: payment.lateFee ?? 0,
   notes: payment.notes ?? '',
+  due_date: payment.dueDate || null,
+  parent_payment_id: payment.parentPaymentId || null,
+  reminder_scheduled_at: payment.reminderScheduledAt || null,
+  reminder_sent: payment.reminderSent ?? false,
+  reminder_sent_at: payment.reminderSentAt || null,
 });
 
 const mapProfileFromDb = (row) => {
@@ -271,17 +281,114 @@ export async function updatePayment(userId, payment) {
 export async function deletePayment(userId, paymentId) {
   if (!userId) return { error: 'Not authenticated' };
   const uuid = toUuid(userId);
-  
+
   const { error } = await supabase
     .from('payments')
     .delete()
     .eq('id', paymentId)
     .eq('user_id', uuid);
-  
+
   return { error };
 }
 
-// ─── PROFILE ────────────────────────────────────────────────────────────
+// ─── INSTALLMENTS ──────────────────────────────────────────────────────
+const mapInstallmentFromDb = (row) => ({
+  id: row.id,
+  paymentId: row.payment_id,
+  installmentNumber: row.installment_number,
+  amount: row.amount ?? 0,
+  dueDate: row.due_date,
+  status: row.status ?? 'unpaid',
+  paidAmount: row.paid_amount ?? 0,
+  paidOn: row.paid_on,
+  paidAt: row.paid_at,
+  notes: row.notes ?? '',
+});
+
+const mapInstallmentToDb = (installment, userId) => ({
+  id: installment.id,
+  user_id: toUuid(userId),
+  payment_id: installment.paymentId,
+  installment_number: installment.installmentNumber,
+  amount: installment.amount ?? 0,
+  due_date: installment.dueDate || null,
+  status: installment.status ?? 'unpaid',
+  paid_amount: installment.paidAmount ?? 0,
+  paid_on: installment.paidOn || null,
+  paid_at: installment.paidAt || null,
+  notes: installment.notes ?? '',
+});
+
+export async function fetchInstallments(userId) {
+  if (!userId) return [];
+  const uuid = toUuid(userId);
+  const { data, error } = await supabase
+    .from('installments')
+    .select('*')
+    .eq('user_id', uuid)
+    .order('payment_id', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching installments:', error);
+    return [];
+  }
+  return (data || []).map(mapInstallmentFromDb);
+}
+
+export async function createInstallment(userId, installment) {
+  if (!userId) return { data: null, error: 'Not authenticated' };
+  const uuid = toUuid(userId);
+
+  const { data, error } = await supabase
+    .from('installments')
+    .insert([mapInstallmentToDb(installment, uuid)])
+    .select()
+    .single();
+
+  return { data: data ? mapInstallmentFromDb(data) : null, error };
+}
+
+export async function updateInstallment(userId, installment) {
+  if (!userId) return { error: 'Not authenticated' };
+  const uuid = toUuid(userId);
+
+  const { data, error } = await supabase
+    .from('installments')
+    .update({ ...mapInstallmentToDb(installment, uuid), updated_at: new Date().toISOString() })
+    .eq('id', installment.id)
+    .eq('user_id', uuid)
+    .select()
+    .single();
+
+  return { data: data ? mapInstallmentFromDb(data) : null, error };
+}
+
+export async function deleteInstallment(userId, installmentId) {
+  if (!userId) return { error: 'Not authenticated' };
+  const uuid = toUuid(userId);
+
+  const { error } = await supabase
+    .from('installments')
+    .delete()
+    .eq('id', installmentId)
+    .eq('user_id', uuid);
+
+  return { error };
+}
+
+// Bulk delete installments by payment ID
+export async function deleteInstallmentsByPaymentId(userId, paymentId) {
+  if (!userId) return { error: 'Not authenticated' };
+  const uuid = toUuid(userId);
+
+  const { error } = await supabase
+    .from('installments')
+    .delete()
+    .eq('payment_id', paymentId)
+    .eq('user_id', uuid);
+
+  return { error };
+}
 export async function fetchProfile(userId) {
   if (!userId) return null;
   const uuid = toUuid(userId);

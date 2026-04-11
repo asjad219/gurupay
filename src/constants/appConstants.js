@@ -18,6 +18,7 @@ export const LS_KEYS = {
   BATCHES: "gp_batches",
   STUDENTS: "gp_students",
   PAYMENTS: "gp_payments",
+  INSTALLMENTS: "gp_installments",
   PROFILE: "gp_profile",
   SETTINGS: "gp_settings",
   THEME: "gp_theme",
