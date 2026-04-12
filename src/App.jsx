@@ -1245,11 +1245,26 @@ function ReceiptModal({ student, batch, payment, profile, toast, onClose }) {
 
 // ─── Student Form Modal ───────────────────────────────────────────────────────
 function StudentModal({ student, batches, onSave, onClose, defaultBatchId }) {
-  const [f, setF] = useState(student || { rollNumber: "", status: "Active", name: "", phone: "", email: "", batchId: defaultBatchId || batches[0]?.id || "", joiningDate: today(), notes: "", discount: 0 });
+  const getDefaultDueDate = () => {
+    const d = new Date();
+    const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const yyyy = endOfMonth.getFullYear();
+    const mm = String(endOfMonth.getMonth() + 1).padStart(2, '0');
+    const dd = String(endOfMonth.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  
+  const [f, setF] = useState(student || { rollNumber: "", status: "Active", name: "", phone: "", email: "", batchId: defaultBatchId || batches[0]?.id || "", joiningDate: today(), notes: "", discount: 0, dueDate: getDefaultDueDate() });
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const valid = f.name.trim() && f.phone.trim().length === 10 && f.batchId;
   const isNewStudent = !student;
   const selectedBatch = batches.find(b => b.id === f.batchId);
+  
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return 'Not set';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
   
   return (
     <div className="modal-overlay">
@@ -1288,19 +1303,33 @@ function StudentModal({ student, batches, onSave, onClose, defaultBatchId }) {
             <div className="input-group"><label className="input-label">Notes</label><input className="input" value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Any special notes..." /></div>
           </div>
           
+          {/* Payment Due Date */}
+          <div className="input-group">
+            <label className="input-label">Payment Due Date {isNewStudent && "💳"}</label>
+            <input 
+              className="input" 
+              type="date" 
+              value={f.dueDate} 
+              onChange={e => set("dueDate", e.target.value)}
+              min={today()}
+            />
+            <div className="input-hint">Date when payment is due. Reminders will be sent 1 day before & on this date.</div>
+          </div>
+          
           {/* Auto Setup Information */}
           {isNewStudent && (
             <div style={{padding: "14px 16px", background: "linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)", borderRadius: "10px", marginTop: 16, marginBottom: 0, fontSize: "12px", color: "var(--text3)", border: "1px solid rgba(59, 130, 246, 0.2)", fontWeight: 500}}>
               <div style={{display: "flex", alignItems: "flex-start", gap: 8}}>
                 <div style={{marginTop: 2}}>🤖</div>
-                <div>
+                <div style={{flex: 1}}>
                   <div style={{fontWeight: 700, color: "var(--text)", marginBottom: 4}}>Auto Setup Enabled</div>
                   <div style={{lineHeight: "1.4"}}>
                     When you add this student, we'll automatically:
                   </div>
                   <ul style={{margin: "6px 0", paddingLeft: 20, color: "var(--text3)"}}>
-                    <li>Set due date to end of current month</li>
+                    <li>Create payment with due date: <strong>{formatDateDisplay(f.dueDate)}</strong></li>
                     <li>Schedule WhatsApp reminders (1 day before & on due date)</li>
+                    <li>Send payment receipts automatically on payment</li>
                   </ul>
                 </div>
               </div>
@@ -2482,33 +2511,45 @@ function FeeSyncPro({ user, authProfile }) {
 
   // Student CRUD
   const saveStudent = async (s) => {
-    const isEdit = students.find(x => x.id === s.id);
-    const ns = isEdit ? students.map(x => x.id === s.id ? s : x) : [...students, s];
+    // Extract due date from student if it was set during add
+    const userProvidedDueDate = s.dueDate;
+    
+    // Remove dueDate from student object before saving (it's not part of student model)
+    const studentToSave = { ...s };
+    delete studentToSave.dueDate;
+    
+    const isEdit = students.find(x => x.id === studentToSave.id);
+    const ns = isEdit ? students.map(x => x.id === studentToSave.id ? studentToSave : x) : [...students, studentToSave];
     setStudents(ns); await dbSet(KEYS.students, ns);
     
     // Also save to Supabase if user is logged in
     if (user?.id) {
       if (isEdit) {
-        await updateStudent(user.id, s).catch(console.error);
+        await updateStudent(user.id, studentToSave).catch(console.error);
       } else {
-        await createStudent(user.id, s).catch(console.error);
+        await createStudent(user.id, studentToSave).catch(console.error);
       }
     }
     
     if (!isEdit) {
-      const b = batches.find(b => b.id === s.batchId);
+      const b = batches.find(b => b.id === studentToSave.batchId);
       if (b) {
-        const base = b.fee - (s.discount || 0);
+        const base = b.fee - (studentToSave.discount || 0);
         const total = base + Math.round(base * b.gstRate / 100);
         // Create payment with basic info
-        let newPayment = { id: uid(), studentId: s.id, month: curMonth, status: "unpaid", amount: total, lateFee: 0, notes: "", reminders: [] };
+        let newPayment = { id: uid(), studentId: studentToSave.id, month: curMonth, status: "unpaid", amount: total, lateFee: 0, notes: "", reminders: [] };
         
-        // Automatically apply due date and reminders based on batch settings
+        // If user provided a specific due date, set it directly
+        if (userProvidedDueDate) {
+          newPayment.dueDate = userProvidedDueDate;
+        }
+        
+        // Automatically apply reminders based on the due date
         newPayment = applyAutoPaymentSetup(newPayment, {
-          autoDueDate: true,
-          duePreset: 'endOfMonth', // Can be 'endOfMonth', 'daysFromNow', or 'nextMonth'
-          daysForDueDate: 7, // Used if duePreset is 'daysFromNow'
-          autoReminders: true, // Automatically create WhatsApp reminders
+          autoDueDate: !userProvidedDueDate, // Only calculate due date if user didn't provide one
+          duePreset: 'endOfMonth', // Default for auto calculation
+          daysForDueDate: 7,
+          autoReminders: true, // Always create WhatsApp reminders
         });
         
         const np = [...payments, newPayment];
@@ -2521,17 +2562,17 @@ function FeeSyncPro({ user, authProfile }) {
       }
     } else {
       // update all UNPAID payment amounts for this student
-      const b = batches.find(b => b.id === s.batchId);
+      const b = batches.find(b => b.id === studentToSave.batchId);
       if (b) {
-        const base = b.fee - (s.discount || 0);
+        const base = b.fee - (studentToSave.discount || 0);
         const newAmt = base + Math.round(base * b.gstRate / 100);
-        const np = payments.map(p => p.studentId === s.id && p.status === "unpaid" ? { ...p, amount: newAmt } : p);
+        const np = payments.map(p => p.studentId === studentToSave.id && p.status === "unpaid" ? { ...p, amount: newAmt } : p);
         setPayments(np); await dbSet(KEYS.payments, np);
         
         // Also update payments in Supabase
         if (user?.id) {
           for (const p of np) {
-            if (p.studentId === s.id && p.status === "unpaid") {
+            if (p.studentId === studentToSave.id && p.status === "unpaid") {
               await updatePayment(user.id, p).catch(console.error);
             }
           }
