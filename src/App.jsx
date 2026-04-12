@@ -4,6 +4,8 @@ import Login from './Login'
 import { ensureUserProfile, fetchOwnProfile } from './lib/authProfile'
 import FeeSyncSettings from './pages/Settings';
 import BatchDetails from './components/BatchDetails';
+import AttendancePage from './pages/Attendance';
+import PaymentHistoryPage from './pages/PaymentHistory';
 import html2canvas from "html2canvas";
 import { 
   fetchBatches, createBatch, updateBatch, deleteBatch as deleteBatchFromDb,
@@ -2225,6 +2227,8 @@ function FeeSyncPro({ user, authProfile }) {
   const [features, setFeatures] = useState(DEFAULT_FEATURES);
   const [whatsappConfig, setWhatsappConfig] = useState(DEFAULT_WHATSAPP_CONFIG);
   const [uiSettings, setUiSettings] = useState(DEFAULT_UI_SETTINGS);
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [auditLogs] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState(null);
   const { toasts, push: toast, dismiss } = useToast();
 
@@ -2282,10 +2286,10 @@ function FeeSyncPro({ user, authProfile }) {
           th = "light";
           feat = supabaseSettings
             ? {
-                showPayments: supabaseSettings.enable_gst !== false,
+                showPayments: true,
                 showStudents: true,
                 showReports: true,
-                showAttendance: false,
+                showAttendance: true,
                 enableNotifications: true,
                 enableDarkMode: true,
                 enableWaiveFee: true,
@@ -2331,7 +2335,7 @@ function FeeSyncPro({ user, authProfile }) {
         setPayments(p || []);
         setProfile(normalizeInstituteProfile(pr));
         setTheme(th || "light");
-        setFeatures(feat || DEFAULT_FEATURES);
+        setFeatures({ ...DEFAULT_FEATURES, ...(feat || {}) });
         setWhatsappConfig(normalizeWhatsAppConfig(waCfg || DEFAULT_WHATSAPP_CONFIG));
         setUiSettings({ ...DEFAULT_UI_SETTINGS, ...(uiCfg || {}) });
       } catch (err) {
@@ -2410,7 +2414,8 @@ function FeeSyncPro({ user, authProfile }) {
     if (
       (tab === "fees" && !features.showPayments) ||
       (tab === "batches" && !features.showStudents) ||
-      (tab === "reports" && !features.showReports)
+      (tab === "reports" && !features.showReports) ||
+      (tab === "attendance" && !features.showAttendance)
     ) {
       setTab("dashboard");
     }
@@ -2653,17 +2658,27 @@ function FeeSyncPro({ user, authProfile }) {
     await supabase.auth.signOut();
   };
 
+  const handleAddAttendance = (record) => {
+    setAttendanceData((prev) => {
+      const next = prev.filter((x) => !(x.studentId === record.studentId && x.date === record.date));
+      next.push(record);
+      return next;
+    });
+  };
+
   const unpaidCount = payments.filter(p => p.month === curMonth && p.status === "unpaid").length;
 
   const NAV = [
     ["dashboard", "Dashboard", <I.Dashboard />, 0],
     ...(features.showPayments ? [["fees", "Fee Tracking", <I.Fees />, unpaidCount]] : []),
     ...(features.showStudents ? [["batches", "Batches & Students", <I.Batches />, 0]] : []),
+    ...(features.showAttendance ? [["attendance", "Attendance", <I.Check />, 0]] : []),
     ...(features.showReports ? [["reports", "Reports", <I.Reports />, 0]] : []),
+    ["history", "History", <I.History />, 0],
     ["settings", "Settings", <I.Settings />, 0],
   ];
 
-  const PAGE_TITLES = { dashboard: "Dashboard", fees: "Fee Tracking", batches: "Batches & Students", reports: "Reports & Analytics", settings: "Settings" };
+  const PAGE_TITLES = { dashboard: "Dashboard", fees: "Fee Tracking", batches: "Batches & Students", attendance: "Attendance", reports: "Reports & Analytics", history: "Payment History", settings: "Settings" };
   const safeProfileName = String(profile?.name || SEED_PROFILE.name || "FeeSync").trim() || "FeeSync";
 
   if (loading) return (
@@ -2771,7 +2786,9 @@ function FeeSyncPro({ user, authProfile }) {
             {tab === "dashboard" && <DashboardTab {...commonProps} />}
             {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} deleteStudent={deleteStudent} />}
             {tab === "batches" && <BatchesTab user={user} batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} selectedBatch={selectedBatch} setSelectedBatch={setSelectedBatch} profile={profile} />}
+            {tab === "attendance" && <AttendancePage batches={batches} students={students} attendanceData={attendanceData} onAddAttendance={handleAddAttendance} onUpdateAttendance={handleAddAttendance} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
+            {tab === "history" && <PaymentHistoryPage payments={payments} students={students} auditLogs={auditLogs} />}
             {tab === "settings" && <FeeSyncSettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} uiSettings={uiSettings} setUiSettings={setUiSettings} batches={batches} students={students} payments={payments} toast={toast} user={user} />}
           </div>
 

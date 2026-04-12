@@ -13,12 +13,12 @@
   <meta name="theme-color" content="#f59e0b" />
 
   <!-- App Description -->
-  <meta name="description" content="FeeSync - Smart Digital Payment Platform" />
+  <meta name="description" content="GuruPay - Smart Digital Payment Platform" />
 
   <!-- PWA Support -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="FeeSync" />
+  <meta name="apple-mobile-web-app-title" content="GuruPay" />
 
   <!-- Icons -->
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
@@ -27,12 +27,11 @@
   <!-- Manifest -->
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
-  <script>
-    window.__APP_BUILD_ID__ = "%REACT_APP_BUILD_ID%";
-  </script>
+  <!-- Prevent caching on browsers -->
+  <meta name="description" content="GuruPay - Smart Digital Payment Platform" />
 
   <!-- Title -->
-  <title>FeeSync</title>
+  <title>GuruPay</title>
 
 </head>
 
@@ -41,5 +40,42 @@
 
   <div id="root"></div>
 
+  <script>
+    // Force users to check for new deployments on every page load/focus
+    const checkForUpdatesOnLoad = async () => {
+      try {
+        const response = await fetch('/version.json?t=' + Date.now(), {
+          cache: 'no-store',
+          headers: { 'cache-control': 'no-cache, no-store' }
+        });
+        const data = await response.json();
+        const cachedBuildId = localStorage.getItem('gp_app_build_id');
+        
+        if (cachedBuildId && cachedBuildId !== data.buildId) {
+          // Clear all caches and reload
+          if ('caches' in window) {
+            const cacheNames = await window.caches.keys();
+            await Promise.all(cacheNames.map(name => window.caches.delete(name)));
+          }
+          // Force hard refresh
+          window.location.href = window.location.href;
+        } else if (!cachedBuildId) {
+          localStorage.setItem('gp_app_build_id', data.buildId);
+        }
+      } catch (e) {
+        console.warn('Failed to check for updates:', e);
+      }
+    };
+    
+    // Check on load
+    checkForUpdatesOnLoad();
+    
+    // Check when user returns to page
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkForUpdatesOnLoad();
+      }
+    });
+  </script>
 </body>
 </html>
