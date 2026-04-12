@@ -2244,6 +2244,11 @@ function FeeSyncPro({ user, authProfile }) {
   // Pending handler stored in ref (to avoid stale closure in FeesTab)
   const _pendingMarkPaid = useRef(null);
 
+  // Handle sign out - will trigger auth state change in Root
+  const handleSignOut = useCallback(() => {
+    window.location.reload();
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -2733,7 +2738,7 @@ function FeeSyncPro({ user, authProfile }) {
             {tab === "fees" && <FeesTab {...commonProps} setPayments={setPayments} deleteStudent={deleteStudent} />}
             {tab === "batches" && <BatchesTab user={user} batches={batches} setBatches={setBatches} students={students} setStudents={setStudents} payments={payments} setPayments={setPayments} toast={toast} openModal={openModal} selectedBatch={selectedBatch} setSelectedBatch={setSelectedBatch} profile={profile} />}
             {tab === "reports" && <ReportsTab batches={batches} students={students} payments={payments} />}
-            {tab === "settings" && <FeeSyncSettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} uiSettings={uiSettings} setUiSettings={setUiSettings} batches={batches} students={students} payments={payments} toast={toast} user={user} />}
+            {tab === "settings" && <FeeSyncSettings embedded={true} profile={profile} setProfile={setProfile} features={features} setFeatures={setFeatures} theme={theme} setTheme={setTheme} uiSettings={uiSettings} setUiSettings={setUiSettings} batches={batches} students={students} payments={payments} toast={toast} user={user} onSignOut={handleSignOut} />}
           </div>
 
           {/* Bottom Navigation for Mobile */}
