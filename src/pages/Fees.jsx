@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import ReceiptButton from "../components/fees/ReceiptButton";
-import SetPaymentDueDateModal from "../components/modals/SetPaymentDueDateModal";
 import BulkMarkPaidModal from "../components/modals/BulkMarkPaidModal";
-import ReminderSchedulerModal from "../components/modals/ReminderSchedulerModal";
 
 const monthKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -242,24 +240,7 @@ export default function Fees() {
     setModal(null);
   };
 
-  const handleSetDueDate = (payment) => {
-    setModal({ type: "setDueDate", data: { payment } });
-  };
 
-  const handleSetDueDateSave = (updatedPayment) => {
-    const np = payments.map((p) => p.id === updatedPayment.id ? updatedPayment : p);
-    setPayments(np);
-    setModal(null);
-  };
-
-  const handleReminderScheduler = (payment, student, batch) => {
-    setModal({ type: "reminderScheduler", data: { payment, student, batch } });
-  };
-
-  const handleReminderScheduled = (payment, reminderData) => {
-    // Reminders are typically handled by backend, just close modal
-    setModal(null);
-  };
 
   const closeModal = () => {
     setModal(null);
@@ -343,23 +324,6 @@ export default function Fees() {
         />
       )}
       
-      {modal?.type === "setDueDate" && (
-        <SetPaymentDueDateModal
-          payment={modal.data.payment}
-          onSave={handleSetDueDateSave}
-          onClose={closeModal}
-        />
-      )}
-      
-      {modal?.type === "reminderScheduler" && (
-        <ReminderSchedulerModal
-          payment={modal.data.payment}
-          student={modal.data.student}
-          batch={modal.data.batch}
-          onSave={handleReminderScheduled}
-          onClose={closeModal}
-        />
-      )}
       
       {modal?.type === "bulkMarkPaid" && (
         <BulkMarkPaidModal
@@ -497,8 +461,6 @@ export default function Fees() {
                         )}
                         {isUnpaid && (
                           <>
-                            <button className="btn btn-secondary" onClick={() => handleSetDueDate(p)} title="Due date" style={{borderRadius: "6px", padding: "5px 8px", fontSize: 11}}>📅</button>
-                            <button className="btn btn-secondary" onClick={() => handleReminderScheduler(p, s, b)} title="Reminder" style={{borderRadius: "6px", padding: "5px 8px", fontSize: 11}}>🔔</button>
                             <button className="btn btn-primary" onClick={() => handleMarkPaidClick(s, p)} style={{background: "var(--gradient-success)", borderRadius: "6px", padding: "5px 10px", fontSize: 11, boxShadow: "0 2px 8px rgba(16, 185, 129, 0.2)", color: "white"}}>✓</button>
                           </>
                         )}
