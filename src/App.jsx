@@ -2366,8 +2366,7 @@ function FeeSyncPro({ user, authProfile }) {
     (async () => {
       try {
         const userId = user?.id;
-        const FETCH_TIMEOUT_MS = 15000; // 15 second timeout for dashboard loading
-
+        
         // Defaults/fallbacks to keep dashboard usable even when network is unstable.
         let supabaseBatches = [];
         let supabaseStudents = [];
@@ -2377,19 +2376,38 @@ function FeeSyncPro({ user, authProfile }) {
 
         if (userId) {
           try {
-            // Wrap Promise.all in a timeout to prevent dashboard from getting stuck
-            [supabaseBatches, supabaseStudents, supabasePayments, supabaseProfile, supabaseSettings] = await Promise.race([
-              Promise.all([
-                fetchBatches(userId).catch(() => []),
-                fetchStudents(userId).catch(() => []),
-                fetchPayments(userId).catch(() => []),
-                fetchProfile(userId).catch(() => null),
-                fetchSettings(userId).catch(() => null),
-              ]),
-              new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Dashboard data fetch timed out')), FETCH_TIMEOUT_MS)
-              )
+            // Helper to add timeout to individual queries (3 sec per query, not global)
+            const withTimeout = (promise, ms = 3000) =>
+              Promise.race([
+                promise,
+                new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error('Query timeout')), ms)
+                ),
+              ]);
+
+            // Use allSettled so slow/failed queries don't block the entire load
+            const results = await Promise.allSettled([
+              withTimeout(fetchBatches(userId)),
+              withTimeout(fetchStudents(userId)),
+              withTimeout(fetchPayments(userId)),
+              withTimeout(fetchProfile(userId)),
+              withTimeout(fetchSettings(userId)),
             ]);
+
+            // Extract values with fallbacks
+            supabaseBatches = results[0]?.status === 'fulfilled' ? (results[0].value || []) : [];
+            supabaseStudents = results[1]?.status === 'fulfilled' ? (results[1].value || []) : [];
+            supabasePayments = results[2]?.status === 'fulfilled' ? (results[2].value || []) : [];
+            supabaseProfile = results[3]?.status === 'fulfilled' ? results[3].value : null;
+            supabaseSettings = results[4]?.status === 'fulfilled' ? results[4].value : null;
+
+            // Log which queries failed (non-blocking logging)
+            if (results.some(r => r.status === 'rejected')) {
+              const failedQueries = results
+                .map((r, i) => i === 0 ? 'batches' : i === 1 ? 'students' : i === 2 ? 'payments' : i === 3 ? 'profile' : 'settings')
+                .filter((_, i) => results[i]?.status === 'rejected');
+              console.warn(`Supabase queries timed out or failed: ${failedQueries.join(', ')}. Using local data.`);
+            }
           } catch (supabaseLoadError) {
             console.warn("Supabase data load failed, falling back to local data:", supabaseLoadError);
           }
