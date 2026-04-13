@@ -1245,7 +1245,7 @@ function ReceiptModal({ student, batch, payment, profile, toast, onClose }) {
 
 // ─── Student Form Modal ───────────────────────────────────────────────────────
 function StudentModal({ student, batches, onSave, onClose, defaultBatchId }) {
-  const [f, setF] = useState(student || { rollNumber: "", status: "Active", name: "", phone: "", email: "", batchId: defaultBatchId || batches[0]?.id || "", joiningDate: today(), notes: "", discount: 0, dueDateMode: "preset", dueDatePreference: "lastDay", customDueDate: "" });
+  const [f, setF] = useState(student || { rollNumber: "", status: "Active", name: "", phone: "", email: "", batchId: defaultBatchId || batches[0]?.id || "", joiningDate: today(), notes: "", discount: 0, dueDateMode: "preset", dueDatePreference: "lastDay", customDueDate: "", autoRemindersEnabled: true });
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const valid = f.name.trim() && f.phone.trim().length === 10 && f.batchId;
   const isNewStudent = !student;
@@ -1394,6 +1394,26 @@ function StudentModal({ student, batches, onSave, onClose, defaultBatchId }) {
               </div>
             </div>
           )}
+          
+          {/* Auto-Reminder Toggle */}
+          <div style={{ padding: "14px 16px", background: "var(--bg3)", borderRadius: "10px", marginTop: 16, marginBottom: 0, border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>🔔 Auto-Reminder System</div>
+              <input 
+                type="checkbox" 
+                className="toggle-input" 
+                checked={f.autoRemindersEnabled} 
+                onChange={e => set("autoRemindersEnabled", e.target.checked)}
+                title={f.autoRemindersEnabled ? "Reminders enabled" : "Reminders disabled"}
+              />
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text4)", lineHeight: "1.4" }}>
+              {f.autoRemindersEnabled 
+                ? <span>✓ This student will receive automatic WhatsApp reminders when fees are due</span>
+                : <span>✗ This student will NOT receive automatic reminders. (Useful if they always pay upfront)</span>
+              }
+            </div>
+          </div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
@@ -1842,6 +1862,7 @@ function FeesTab({ batches, students, payments, setPayments, selectedMonth, setS
                     <td>
                       <div className="td-primary">{s.name}</div>
                       {s.notes && <div style={{ fontSize: 11, color: "var(--amber)" }}>📝 {s.notes}</div>}
+                      {s.autoRemindersEnabled === false && <div style={{ fontSize: 11, color: "var(--text4)", marginTop: 2 }}>🔕 Reminders disabled</div>}
                     </td>
                     <td>{b && <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5 }}><span style={{ background: b.color }} className="dot" />{b.name}</span>}</td>
                     <td>
@@ -2105,6 +2126,7 @@ function BatchesTab({ user, batches, setBatches, students, setStudents, payments
                     <td>
                       <div className="td-primary">{s.name}</div>
                       {s.notes && <div style={{ fontSize: 11, color: "var(--amber)" }}>📝 {s.notes}</div>}
+                      {s.autoRemindersEnabled === false && <div style={{ fontSize: 11, color: "var(--text4)", marginTop: 2 }}>🔕 Reminders disabled</div>}
                     </td>
                     <td className="td-mono" style={{ fontSize: 12 }}>{s.phone}</td>
                     <td>{b && <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5 }}><span style={{ background: b.color }} className="dot" />{b.name}</span>}</td>
@@ -2299,34 +2321,87 @@ function GenerateFeesModal({ user, batches, students, payments, setPayments, sel
 function BulkReminderModal({ unpaid, students, batches, selectedMonth, whatsappConfig, onClose }) {
   const getStudent = id => students.find(s => s.id === id);
   const getBatch = id => batches.find(b => b.id === id);
+  
+  // Separate students with reminders enabled vs disabled
+  const withRemindersEnabled = unpaid.filter(p => {
+    const s = getStudent(p.studentId);
+    return s && s.autoRemindersEnabled !== false;
+  });
+  
+  const withRemindersDisabled = unpaid.filter(p => {
+    const s = getStudent(p.studentId);
+    return s && s.autoRemindersEnabled === false;
+  });
+  
   return (
     <div className="modal-overlay">
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-box" style={{ maxWidth: 480 }}>
-        <div className="modal-header"><div><div className="modal-title">📲 Bulk WhatsApp Reminder</div><div className="modal-subtitle">{unpaid.length} students with pending fees</div></div><button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><I.X /></button></div>
+        <div className="modal-header"><div><div className="modal-title">📲 Bulk WhatsApp Reminder</div><div className="modal-subtitle">{withRemindersEnabled.length} students eligible for reminders</div></div><button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><I.X /></button></div>
         <div className="modal-body">
-          <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 12, lineHeight: 1.6 }}>
-            Click each student's button to open WhatsApp with a pre-filled reminder message. Send them one by one.
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 320, overflowY: "auto" }}>
-            {unpaid.map(p => {
-              const s = getStudent(p.studentId); const b = s && getBatch(s.batchId);
-              if (!s || !b) return null;
-              const msg = buildReminderMessage({
-                student: s,
-                batch: b,
-                month: selectedMonth,
-                amount: p.amount,
-                whatsappConfig,
-              });
-              return (
-                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "var(--bg3)", borderRadius: "var(--radius-sm)" }}>
-                  <div><div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div><div style={{ fontSize: 11, color: "var(--text4)" }}>{b.name} · {fmtINR(p.amount)}</div></div>
-                  <a href={`https://wa.me/91${s.phone}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noreferrer" className="btn btn-wa btn-sm" style={{ textDecoration: "none" }}><I.WA /> Send</a>
-                </div>
-              );
-            })}
-          </div>
+          {withRemindersEnabled.length > 0 && (
+            <>
+              <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 12, lineHeight: 1.6 }}>
+                Click each student's button to open WhatsApp with a pre-filled reminder message. Send them one by one.
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 240, overflowY: "auto", marginBottom: 12 }}>
+                {withRemindersEnabled.map(p => {
+                  const s = getStudent(p.studentId); const b = s && getBatch(s.batchId);
+                  if (!s || !b) return null;
+                  const msg = buildReminderMessage({
+                    student: s,
+                    batch: b,
+                    month: selectedMonth,
+                    amount: p.amount,
+                    whatsappConfig,
+                  });
+                  return (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "var(--bg3)", borderRadius: "var(--radius-sm)" }}>
+                      <div><div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div><div style={{ fontSize: 11, color: "var(--text4)" }}>{b.name} · {fmtINR(p.amount)}</div></div>
+                      <a href={`https://wa.me/91${s.phone}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noreferrer" className="btn btn-wa btn-sm" style={{ textDecoration: "none" }}><I.WA /> Send</a>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+          
+          {withRemindersDisabled.length > 0 && (
+            <div style={{ padding: "12px 14px", background: "linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)", borderRadius: "var(--radius-sm)", border: "1px solid rgba(59, 130, 246, 0.2)", marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 12, color: "var(--blue)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                🔕 {withRemindersDisabled.length} Student{withRemindersDisabled.length !== 1 ? 's' : ''} with Reminders Disabled
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text4)", lineHeight: 1.4, marginBottom: 8 }}>
+                The following students have auto-reminders disabled (they may pay upfront). You can manually send them reminders if needed:
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {withRemindersDisabled.map(p => {
+                  const s = getStudent(p.studentId); const b = s && getBatch(s.batchId);
+                  if (!s || !b) return null;
+                  const msg = buildReminderMessage({
+                    student: s,
+                    batch: b,
+                    month: selectedMonth,
+                    amount: p.amount,
+                    whatsappConfig,
+                  });
+                  return (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "var(--bg4)", borderRadius: "var(--radius-sm)", fontSize: 12 }}>
+                      <div><div style={{ fontWeight: 600, color: "var(--text)" }}>{s.name}</div><div style={{ fontSize: 10, color: "var(--text4)", marginTop: 2 }}>{b.name}</div></div>
+                      <a href={`https://wa.me/91${s.phone}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm" style={{ textDecoration: "none", fontSize: 11, padding: "5px 8px" }}><I.WA /> Manual</a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          
+          {withRemindersEnabled.length === 0 && withRemindersDisabled.length === 0 && (
+            <div className="empty" style={{ padding: 20, textAlign: "center" }}>
+              <div className="empty-icon">✓</div>
+              <div className="empty-title">No pending fees</div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -14,6 +14,7 @@ export const createStudent = (data = {}) => ({
   joiningDate: data.joiningDate || new Date().toISOString().split("T")[0],
   notes: data.notes || "",
   discount: data.discount || 0,
+  autoRemindersEnabled: data.autoRemindersEnabled !== false, // Enable auto-reminders by default
   createdAt: data.createdAt || new Date().toISOString(),
   updatedAt: data.updatedAt || new Date().toISOString(),
 });

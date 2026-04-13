@@ -88,6 +88,28 @@ export default function ReminderSchedulerModal({ payment, student, batch, onSave
             )}
           </div>
 
+          {/* Auto-Reminder Disabled Warning */}
+          {student?.autoRemindersEnabled === false && (
+            <div
+              style={{
+                padding: "14px 16px",
+                background: "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)",
+                borderRadius: "12px",
+                marginBottom: 24,
+                border: "1.5px solid rgba(59, 130, 246, 0.2)",
+                fontSize: "13px",
+                fontWeight: 600
+              }}
+            >
+              <div style={{ color: "var(--blue)", marginBottom: 4, fontWeight: 700 }}>
+                ℹ️ Reminders Disabled for This Student
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text3)" }}>
+                This student has auto-reminders disabled (they may pay upfront). You can still schedule a one-time reminder below if needed.
+              </div>
+            </div>
+          )}
+
           {/* Reminder Toggle */}
           <div
             style={{
