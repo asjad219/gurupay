@@ -2366,7 +2366,7 @@ function FeeSyncPro({ user, authProfile }) {
     (async () => {
       try {
         const userId = user?.id;
-        const FETCH_TIMEOUT_MS = 5000; // 5 second timeout for dashboard loading
+        const FETCH_TIMEOUT_MS = 15000; // 15 second timeout for dashboard loading
 
         // Defaults/fallbacks to keep dashboard usable even when network is unstable.
         let supabaseBatches = [];
